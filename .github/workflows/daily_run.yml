@@ -1,0 +1,40 @@
+name: Daily Stock Check
+
+on:
+  schedule:
+    # 每天 UTC 时间 02:00 运行 (对应北京时间 10:00)
+    # cron 语法: 分 时 日 月 周
+    - cron: '0 2 * * 1-5'  # 1-5代表周一到周五
+  
+  # 允许手动点击按钮运行 (方便测试)
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    # 设置时区为上海，方便日志查看
+    env:
+      TZ: Asia/Shanghai
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Strategy Script
+        env:
+          # 把 GitHub Secrets 注入到 Python 环境变量中
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
+          RECEIVER_EMAIL: ${{ secrets.RECEIVER_EMAIL }}
+        run: python main.py
