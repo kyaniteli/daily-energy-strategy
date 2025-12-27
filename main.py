@@ -8,69 +8,62 @@ from email.mime.text import MIMEText
 from email.header import Header
 from datetime import datetime
 
-# ========================= 1. 环境变量配置 =========================
-# 请在 Github Secrets 或本地环境变量中配置这些信息
+# ========================= 1. 环境变量 =========================
 PUSHPLUS_TOKEN = os.getenv("PUSHPLUS_TOKEN", "")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL", "")
 
-# ========================= 2. 信仰语录 (30年传世版) =========================
+# ========================= 2. 30年·本分语录 =========================
 QUOTES = [
-    "“长电是用来养老的，五粮液是用来抗通胀的，东财是用来做梦的。分工明确，心态才稳。”",
-    "“卖出广核换长电，是用‘白银’换‘黄金’。不要看价格，要看生意的寿命。”",
-    "“五粮液只是工具，不是信仰。跌到 100 以下是机会，涨上去是红利，别动感情。”",
-    "“东财涨到天上去也别加仓，那是赌博；长电跌到地板上要敢加仓，那是机会。”",
-    "“本分就是：不赚看不懂的钱，不接高估值的盘，不信一夜暴富的神话。”",
-    "“如果你无法持有长江电力 10 年，就不要持有它 10 分钟。”"
+    "“宁可错过紫金的暴涨，也不要在高位站岗。手里有现金，心中不慌。”",
+    "“长江电力是你的养老金，美的集团是你的印钞机，五粮液是你的存钱罐。”",
+    "“不要预测牛市，要时刻准备好牛市不来我们也能赚钱。”",
+    "“真正的风控，是买入那个 30 年后肯定还在的公司。”",
+    "“只做升级，不做轮动。看不懂的钱不赚，太贵的货不买。”"
 ]
 
-# ========================= 3. 4321 阵型终极配置 =========================
-# 逻辑核心：基于 2025.12.27 复盘结论
+# ========================= 3. 4321 最终持仓配置 =========================
 PORTFOLIO_CFG = {
     "600900": {
         "name": "长江电力",
         "role": "🏔️ 基石 (40%)",
-        "strategy": "hold_forever", # 永久持有策略
-        "target_pe": 20.0,          # 合理PE锚点
-        "buy_zone": 22.0,           # 低于此PE可无脑定投
-        "sell_zone": 30.0,          # 极度高估线
+        "strategy": "hold",
+        "buy_zone": 22.0,      # PE < 22 可定投
+        "sell_zone": 30.0,
         "key_metric": "股息率",
-        "report_focus": "关注乌东德、白鹤滩折旧政策及来水情况。",
-        "mental": "只要水还在流，你的养老金就在印。跌了是送钱，别慌。"
+        "mental": "它负责兜底。只要跌下来，就是加仓送分题。",
+        "action": "有闲钱优先买它。"
     },
     "000858": {
         "name": "五粮液",
-        "role": "💰 现金牛 (30%)",
-        "strategy": "value_pick",   # 捡烟蒂策略
-        "target_pe": 15.0,
-        "buy_price": 100.0,         # 绝对价格买入线
-        "sell_zone": 30.0,          # 泡沫线
+        "role": "💰 现金 (30%)",
+        "strategy": "value",
+        "buy_price": 100.0,    # 绝对价格监控
+        "sell_zone": 25.0,
         "key_metric": "PE(TTM)",
-        "report_focus": "关注合同负债（蓄水池）是否下降，分红率是否提升。",
-        "mental": "它是工具。跌破 100 块是上帝给的机会，买了就拿分红，别幻想它成科技股。"
+        "mental": "它是工具。100元以下是黄金坑，110以上是合理，130以上停止买入。",
+        "action": "持有2手不动，跌破100买第3手。"
     },
-    "601816": {
-        "name": "京沪高铁",
-        "role": "🛡️ 防线 (20%)",
-        "strategy": "bond_proxy",   # 类债券策略
-        "target_pe": 20.0,
-        "buy_zone": 20.0,
-        "sell_zone": 35.0,
+    "000333": {
+        "name": "美的集团",
+        "role": "🤖 成长 (20%)",
+        "strategy": "growth",
+        "buy_zone": 13.0,      # PE < 13 极度低估
+        "sell_zone": 20.0,
         "key_metric": "PE(TTM)",
-        "report_focus": "关注票价浮动机制及客流恢复情况。",
-        "mental": "收租公就要有收租公的觉悟。不指望翻倍，只指望跑赢通胀。"
+        "mental": "代替京沪高铁和紫金。它是中国制造业的巅峰，也是机器人的未来。",
+        "action": "分批买入，拿住3-5年。"
     },
     "300059": {
         "name": "东方财富",
         "role": "🧨 期权 (10%)",
-        "strategy": "casino",       # 赌场策略
-        "target_pe": 25.0,
-        "buy_zone": 20.0,           # 极度低估才买
-        "sell_zone": 40.0,          # 疯狂泡沫必卖
+        "strategy": "casino",
+        "buy_zone": 20.0,
+        "sell_zone": 35.0,     # 泡沫红线
         "key_metric": "PE(TTM)",
-        "report_focus": "关注日均成交额（牛市风向标）。",
-        "mental": "这是彩票。赢了把钱换长电，输了就当看戏。严禁加仓超过 10%！"
+        "mental": "这是彩票。仓位锁死 10%，无论涨跌绝不加仓。",
+        "action": "大跌买，大涨卖，不长拿。"
     }
 }
 
@@ -80,19 +73,14 @@ class AutoStrategy:
         self.today = datetime.now()
 
     def get_market_status(self):
-        # 简单的市场温度计
-        return "🤖 4321 纪律执行中", "#188038"
+        return "🛡️ 稳健建仓期", "#188038"
 
     def get_data(self):
         try:
-            print("正在连接交易所获取实时数据...")
-            # akshare 接口：获取A股实时行情
             df = ak.stock_zh_a_spot_em()
             codes = list(self.portfolio.keys())
             return df[df['代码'].isin(codes)].copy()
-        except Exception as e:
-            print(f"数据获取失败: {e}")
-            return None
+        except: return None
 
     def analyze(self):
         df = self.get_data()
@@ -102,141 +90,75 @@ class AutoStrategy:
         for index, row in df.iterrows():
             code = row['代码']
             cfg = self.portfolio.get(code)
-            
-            # 基础数据
             name = cfg['name']
             price = row['最新价']
-            pe = row['市盈率-动态'] # 注意：这里取动态PE，也可换成TTM
-            pb = row['市净率']
-            change_pct = row['涨跌幅']
+            pe = row['市盈率-动态']
             
-            # --- 智能诊断逻辑 ---
-            signal = "🔒 持仓不动"
-            signal_color = "#666" # 灰色
-            action_tip = "当前价格处于合理区间，安心持有收息。"
-            
-            # 1. 长江电力逻辑
+            # 智能信号生成
+            signal = "🔒 持仓"
+            color = "#666"
+            tip = cfg['action']
+
+            # 长电逻辑
             if code == "600900":
-                if pe < cfg['buy_zone']:
-                    signal = "💎 贪婪加仓"
-                    signal_color = "#d93025" # 红色
-                    action_tip = f"PE低于{cfg['buy_zone']}，这是送分题，有闲钱务必买入。"
-                elif pe > cfg['sell_zone']:
-                    signal = "⚠️ 估值过热"
-                    signal_color = "#f39c12" # 橙色
-                    action_tip = "估值偏高，停止定投，享受泡沫，不要卖出核心仓位。"
-            
-            # 2. 五粮液逻辑 (绝对价格 + PE)
+                if pe < 20.7: 
+                    signal = "💎 加仓"
+                    color = "#d93025"
+                    tip = "当前估值具备长期性价比，建议定投。"
+
+            # 五粮液逻辑
             elif code == "000858":
                 if price < cfg['buy_price']:
-                    signal = "💰 黄金大坑"
-                    signal_color = "#d93025"
-                    action_tip = f"股价跌破 {cfg['buy_price']} 元！动用最后备用金买入第3手！"
-                elif pe < 15:
-                    signal = "📥 低吸区域"
-                    signal_color = "#188038" # 绿色
-                    action_tip = "15倍PE以下，只买不卖，慢慢定投。"
-                elif pe > 25:
-                    signal = "🛑 停止买入"
-                    signal_color = "#f39c12"
-                    action_tip = "估值修复完成，把它当债券拿，一股都别加。"
+                    signal = "🚨 抄底警报"
+                    color = "#d93025"
+                    tip = f"股价跌破 {cfg['buy_price']}！动用备用金买入！"
+                elif pe > 18:
+                    signal = "🛑 停买"
+                    color = "#f39c12"
+                    tip = "估值修复过半，停止买入，仅持有。"
 
-            # 3. 京沪高铁逻辑
-            elif code == "601816":
-                if pe < 20:
-                    signal = "📥 定投区间"
-                    signal_color = "#188038"
-                    action_tip = "PE回归20倍以下，具备防御价值，可配置。"
-            
-            # 4. 东方财富逻辑 (止盈风控)
+            # 美的逻辑
+            elif code == "000333":
+                if pe < 13.5:
+                    signal = "🟢 买入区"
+                    color = "#188038"
+                    tip = "处于低估区间，适合分批建仓。"
+
+            # 东财逻辑
             elif code == "300059":
-                if pe > cfg['sell_zone']:
-                    signal = "🚀 止盈警报"
-                    signal_color = "#8e44ad" # 紫色
-                    action_tip = "市盈率过高！请考虑卖出本金，转投长江电力！"
-                elif pe < 20:
-                    signal = "🎭 极度低估"
-                    action_tip = "虽然便宜，但切记仓位锁死 10%，不要贪。"
-
-            # 核心指标展示
-            metrics_html = f"""
-            <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:12px; color:#555;">
-                <span>PE: <b>{pe}</b></span>
-                <span>PB: <b>{pb}</b></span>
-                <span>涨跌: <b style="color:{'#d93025' if change_pct > 0 else '#188038'}">{change_pct}%</b></span>
-            </div>
-            """
+                if pe > 30:
+                    signal = "⚠️ 高危"
+                    color = "#8e44ad"
+                    tip = "估值过高，严禁加仓，考虑止盈换长电。"
 
             results.append({
-                "name": name,
-                "role": cfg['role'],
-                "price": price,
-                "signal": signal,
-                "signal_color": signal_color,
-                "action_tip": action_tip,
-                "metrics_html": metrics_html,
-                "mental": cfg['mental'],
-                "report_focus": cfg['report_focus']
+                "name": name, "role": cfg['role'], "price": price, "pe": pe,
+                "signal": signal, "color": color, "tip": tip, "mental": cfg['mental']
             })
-            
         return results
 
     def generate_html(self, data):
         quote = random.choice(QUOTES)
-        html = f"""
-        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8f9fa;">
-            <div style="background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); padding: 20px; border-radius: 0 0 15px 15px; color: white; text-align: center;">
-                <div style="font-size: 20px; font-weight: bold; letter-spacing: 1px;">🛡️ 30年传世阵型 · 监控日报</div>
-                <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">{self.today.strftime("%Y-%m-%d %H:%M")}</div>
-            </div>
-
-            <div style="margin: 15px; background: #fff; padding: 15px; border-radius: 10px; border-left: 5px solid #d93025; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
-                <div style="font-size: 14px; color: #333; font-style: italic; line-height: 1.6;">{quote}</div>
-            </div>
-
-            <div style="padding: 0 15px;">
-        """
+        html = f"""<div style="font-family:Arial;max-width:600px;margin:0 auto;background:#f4f4f4;padding:15px;">
+        <div style="background:#000;color:#fff;padding:15px;border-radius:10px;text-align:center;">
+            <h3>🛡️ Mango投资日记</h3>
+            <p style="font-size:12px;opacity:0.8;">{self.today.strftime("%Y-%m-%d")}</p>
+        </div>
+        <div style="margin:15px 0;background:#fff;padding:15px;border-left:4px solid #d93025;font-style:italic;">{quote}</div>"""
         
         for item in data:
             html += f"""
-            <div style="background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); position: relative; overflow: hidden;">
-                <div style="position: absolute; top: 0; right: 0; background: #f1f3f5; color: #666; font-size: 10px; padding: 4px 8px; border-radius: 0 12px 0 10px;">
-                    {item['role']}
+            <div style="background:#fff;padding:15px;margin-bottom:10px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div><b style="font-size:18px;">{item['name']}</b> <span style="font-size:12px;background:#eee;padding:2px 5px;">{item['role']}</span></div>
+                    <div style="background:{item['color']};color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;">{item['signal']}</div>
                 </div>
-                
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-                    <div>
-                        <span style="font-size: 18px; font-weight: 800; color: #2c3e50;">{item['name']}</span>
-                    </div>
-                    <div style="background-color: {item['signal_color']}; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">
-                        {item['signal']}
-                    </div>
-                </div>
-
-                <div style="display: flex; align-items: baseline;">
-                    <span style="font-size: 28px; font-weight: 900; color: #2c3e50; margin-right: 10px;">{item['price']}</span>
-                    <span style="font-size: 12px; color: #999;">人民币</span>
-                </div>
-                {item['metrics_html']}
-
-                <div style="margin-top: 12px; background-color: #fcf6f5; border: 1px dashed #e0e0e0; padding: 10px; border-radius: 8px;">
-                    <div style="font-size: 13px; color: #c0392b; font-weight: bold;">⚡ 操作指令：</div>
-                    <div style="font-size: 13px; color: #555; margin-top: 4px; line-height: 1.4;">{item['action_tip']}</div>
-                </div>
-
-                <div style="margin-top: 8px; font-size: 12px; color: #7f8c8d; border-top: 1px solid #eee; padding-top: 8px;">
-                    🧠 <b>心态锚定：</b>{item['mental']}
-                </div>
-            </div>
-            """
-
-        html += """
-            <div style="text-align: center; font-size: 12px; color: #aaa; margin: 20px 0;">
-                Build with Python & Logic by Gemini Strategy
-            </div>
-        </div>
-        """
-        return html
+                <div style="margin:10px 0;font-size:24px;font-weight:bold;">{item['price']} <span style="font-size:12px;color:#999;font-weight:normal;">PE: {item['pe']}</span></div>
+                <div style="background:#f9f9f9;padding:8px;font-size:13px;color:#333;border-radius:4px;">⚡ <b>指令：</b>{item['tip']}</div>
+                <div style="margin-top:8px;font-size:12px;color:#888;">🧠 {item['mental']}</div>
+            </div>"""
+        
+        return html + "</div>"
 
 # ========================= 发送逻辑 =========================
 def send_pushplus(title, content):
@@ -255,7 +177,7 @@ def send_email(title, content):
     receivers = RECEIVER_EMAIL.replace("，", ",").split(",")
     try:
         msg = MIMEText(content, 'html', 'utf-8')
-        msg['From'] = Header("AI投资助理", 'utf-8')
+        msg['From'] = Header("Mango投资助理", 'utf-8')
         msg['Subject'] = Header(title, 'utf-8')
         
         s = smtplib.SMTP_SSL("smtp.qq.com", 465)
@@ -270,9 +192,9 @@ if __name__ == "__main__":
     data = bot.analyze()
     
     if data:
-        # 标题带上日期
-        title_date = datetime.now().strftime('%m-%d')
-        title = f"🛡️ 4321传世持仓日报 {title_date}"
+        # 标题修改为 Mango投资日记 + 具体日期
+        title_date = datetime.now().strftime('%Y-%m-%d')
+        title = f"Mango投资日记 {title_date}"
         
         html_content = bot.generate_html(data)
         
@@ -280,6 +202,6 @@ if __name__ == "__main__":
         send_pushplus(title, html_content)
         send_email(title, html_content)
         
-        print("✅ 所有任务执行完毕")
+        print("✅ 任务执行完毕")
     else:
         print("❌ 无数据，未发送")
