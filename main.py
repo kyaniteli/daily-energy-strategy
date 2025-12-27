@@ -96,32 +96,32 @@ class AutoStrategy:
             
             # 智能信号生成
             signal = "🔒 持仓"
-            color = "#666"
+            color = "#7f8c8d" # 灰色加深
             tip = cfg['action']
 
             # 长电逻辑
             if code == "600900":
                 if pe < 20.7: 
                     signal = "💎 加仓"
-                    color = "#d93025"
+                    color = "#c0392b" # 深红
                     tip = "当前估值具备长期性价比，建议定投。"
 
             # 五粮液逻辑
             elif code == "000858":
                 if price < cfg['buy_price']:
-                    signal = "🚨 抄底警报"
-                    color = "#d93025"
+                    signal = "🚨 抄底"
+                    color = "#c0392b"
                     tip = f"股价跌破 {cfg['buy_price']}！动用备用金买入！"
                 elif pe > 18:
                     signal = "🛑 停买"
-                    color = "#f39c12"
+                    color = "#d35400" # 深橙
                     tip = "估值修复过半，停止买入，仅持有。"
 
             # 美的逻辑
             elif code == "000333":
                 if pe < 13.5:
-                    signal = "🟢 买入区"
-                    color = "#188038"
+                    signal = "🟢 买入"
+                    color = "#27ae60" # 深绿
                     tip = "处于低估区间，适合分批建仓。"
 
             # 东财逻辑
@@ -139,23 +139,37 @@ class AutoStrategy:
 
     def generate_html(self, data):
         quote = random.choice(QUOTES)
-        html = f"""<div style="font-family:Arial;max-width:600px;margin:0 auto;background:#f4f4f4;padding:15px;">
-        <div style="background:#000;color:#fff;padding:15px;border-radius:10px;text-align:center;">
-            <h3>🛡️ Mango投资日记</h3>
-            <p style="font-size:12px;opacity:0.8;">{self.today.strftime("%Y-%m-%d")}</p>
+        
+        # --- UI 调整核心区域 ---
+        # 1. 外部背景：#e6e6e6 (中灰，对比度更高)
+        # 2. 头部：黑底白字保持不变，增加投影
+        # 3. 卡片：白底，投影加深
+        # 4. 指令框：#e8f4fd (淡蓝背景) + 深蓝文字，极度显眼
+        
+        html = f"""<div style="font-family:'Helvetica Neue', Arial, sans-serif;max-width:600px;margin:0 auto;background:#e6e6e6;padding:20px;">
+        <div style="background:#000;color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 8px rgba(0,0,0,0.2);">
+            <h3 style="margin:0;font-size:22px;">🛡️ Mango投资日记</h3>
+            <p style="margin:5px 0 0;font-size:12px;opacity:0.8;letter-spacing:1px;">{self.today.strftime("%Y-%m-%d")}</p>
         </div>
-        <div style="margin:15px 0;background:#fff;padding:15px;border-left:4px solid #d93025;font-style:italic;">{quote}</div>"""
+        <div style="margin:20px 0;background:#fff;padding:15px;border-left:5px solid #d93025;font-style:italic;color:#444;border-radius:4px;">{quote}</div>"""
         
         for item in data:
             html += f"""
-            <div style="background:#fff;padding:15px;margin-bottom:10px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.05);">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <div><b style="font-size:18px;">{item['name']}</b> <span style="font-size:12px;background:#eee;padding:2px 5px;">{item['role']}</span></div>
-                    <div style="background:{item['color']};color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;">{item['signal']}</div>
+            <div style="background:#fff;padding:18px;margin-bottom:15px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <div>
+                        <b style="font-size:18px;color:#222;">{item['name']}</b> 
+                        <span style="font-size:11px;background:#e0e0e0;color:#333;padding:3px 6px;border-radius:4px;margin-left:5px;font-weight:bold;">{item['role']}</span>
+                    </div>
+                    <div style="background:{item['color']};color:#fff;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.15);">{item['signal']}</div>
                 </div>
-                <div style="margin:10px 0;font-size:24px;font-weight:bold;">{item['price']} <span style="font-size:12px;color:#999;font-weight:normal;">PE: {item['pe']}</span></div>
-                <div style="background:#f9f9f9;padding:8px;font-size:13px;color:#333;border-radius:4px;">⚡ <b>指令：</b>{item['tip']}</div>
-                <div style="margin-top:8px;font-size:12px;color:#888;">🧠 {item['mental']}</div>
+                <div style="margin:12px 0;font-size:28px;font-weight:800;color:#333;">{item['price']} <span style="font-size:13px;color:#7f8c8d;font-weight:normal;margin-left:5px;">PE: {item['pe']}</span></div>
+                
+                <div style="background:#e8f4fd;padding:12px;font-size:14px;color:#0c2d48;border-radius:6px;border:1px solid #b3e5fc;margin-bottom:10px;">
+                    ⚡ <b>指令：</b>{item['tip']}
+                </div>
+                
+                <div style="font-size:12px;color:#666;line-height:1.4;">🧠 {item['mental']}</div>
             </div>"""
         
         return html + "</div>"
@@ -192,13 +206,11 @@ if __name__ == "__main__":
     data = bot.analyze()
     
     if data:
-        # 标题修改为 Mango投资日记 + 具体日期
         title_date = datetime.now().strftime('%Y-%m-%d')
         title = f"Mango投资日记 {title_date}"
         
         html_content = bot.generate_html(data)
         
-        # 多通道推送
         send_pushplus(title, html_content)
         send_email(title, html_content)
         
