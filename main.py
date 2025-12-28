@@ -14,7 +14,7 @@ SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
 RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL", "")
 
-# ========================= 信仰语录 (十五五·生存版) =========================
+# ========================= 信仰语录 =========================
 QUOTES = [
     "“长江的水，神华的煤，广核的电，茅台的酒。这是中国最硬的物理资产。”",
     "“阿段说：太贵了就不买，哪怕它涨到天上去。错失不是亏损。”",
@@ -23,67 +23,44 @@ QUOTES = [
     "“真正的风控，是买入那个 30 年后肯定还在的公司。”"
 ]
 
-# ========================= 十五五 · 9大金刚配置 =========================
+# ========================= 十五五 · 金刚配置 =========================
 PORTFOLIO_CFG = {
-    "600900": {
-        "name": "长江电力", "role": "🏔️ 养老基石", "dps": 0.95, "strategy": "bond",
-        "key_metric": "股息率", "other_metrics": ["PE(TTM)", "利差"],
-        "mental_check": "它负责兜底。只要跌下来，就是加仓送分题。",
-        "report_focus": "关注：来水情况与折旧完结进度。", "risk_point": "股息率 < 2.8%"
-    },
-    "601088": {
-        "name": "中国神华", "role": "⚫️ 能源底座", "dps": 2.26, "strategy": "bond",
-        "key_metric": "股息率", "other_metrics": ["煤价", "长协比"],
-        "mental_check": "家里有矿，心中不慌。高位不追，回调加仓。",
-        "report_focus": "关注：煤电一体化对冲效果。", "risk_point": "股息率 < 5.0%"
-    },
-    "601006": {
-        "name": "大秦铁路", "role": "🛤️ 国家存折", "dps": 0.44, "strategy": "bond",
-        "key_metric": "股息率", "other_metrics": ["PB", "运量"],
-        "mental_check": "这是甚至不需要看K线的股票。把它当成永续债。",
-        "report_focus": "关注：大秦线日均运量。", "risk_point": "股息率 < 5.5%"
-    },
-    "601985": {
-        "name": "中国核电", "role": "⚛️ 绿色引擎", "dps": 0.17, "strategy": "growth",
-        "key_metric": "PE(TTM)", "other_metrics": ["PB", "装机量"],
-        "mental_check": "还在长身体的孩子。工资定投的首选对象。",
-        "report_focus": "关注：新能源装机增速与电价弹性。", "risk_point": "PE > 25倍"
-    },
-    "600519": {
-        "name": "贵州茅台", "role": "👑 A股之王", "dps": 30.8, "strategy": "value",
-        "key_metric": "PE(TTM)", "other_metrics": ["批价", "直销比"],
-        "mental_check": "它是社交货币。跌破1400是上帝给的礼物。",
-        "report_focus": "关注：i茅台直销占比与提价预期。", "risk_point": "PE > 40倍"
-    },
-    "000858": {
-        "name": "五粮液", "role": "🍷 价值前锋", "dps": 4.67, "strategy": "value",
-        "key_metric": "PE(TTM)", "other_metrics": ["预收款", "动销"],
-        "mental_check": "这是翻身仗。110左右极度低估，125以下只买不卖。",
-        "report_focus": "关注：合同负债蓄水池深度。", "risk_point": "PE > 25倍"
-    },
-    "000333": {
-        "name": "美的集团", "role": "🤖 全球制造", "dps": 3.0, "strategy": "growth",
-        "key_metric": "PE(TTM)", "other_metrics": ["分红率", "外销比"],
-        "mental_check": "代替京沪高铁和紫金，中国制造业巅峰。",
-        "report_focus": "关注：B端业务(机器人/楼宇)增速。", "risk_point": "PE > 20倍"
-    },
-    "601882": {
-        "name": "海天精工", "role": "⚙️ 工业母机", "dps": 0.5, "strategy": "cyclical",
-        "key_metric": "PE(TTM)", "other_metrics": ["PB", "订单"],
-        "mental_check": "赌中国制造业设备更新红利。",
-        "report_focus": "关注：龙门加工中心出口订单。", "risk_point": "PE > 30倍"
-    },
-    "002415": {  # 新增海康威视
-        "name": "海康威视",
-        "role": "📹 智能监控",
-        "dps": 0.40,
-        "strategy": "growth",
-        "key_metric": "PE(TTM)",
-        "other_metrics": ["PB", "营收增速", "毛利率"],
-        "mental_check": "专注全球安防与AI增长，估值合理时是长期定投标的。",
-        "report_focus": "关注：安防业务增速、海外市场占比及AI视频智能化落地。",
-        "risk_point": "PE > 30倍"
-    }
+    "600900": {"name": "长江电力","role": "🏔️ 养老基石","dps": 0.95,"strategy": "bond",
+               "key_metric": "股息率","other_metrics": ["PE(TTM)", "利差"],
+               "mental_check": "它负责兜底。只要跌下来，就是加仓送分题。",
+               "report_focus": "关注：来水情况与折旧完结进度。","risk_point": "股息率 < 2.8%"},
+    "601088": {"name": "中国神华","role": "⚫️ 能源底座","dps": 2.26,"strategy": "bond",
+               "key_metric": "股息率","other_metrics": ["煤价", "长协比"],
+               "mental_check": "家里有矿，心中不慌。高位不追，回调加仓。",
+               "report_focus": "关注：煤电一体化对冲效果。","risk_point": "股息率 < 5.0%"},
+    "601006": {"name": "大秦铁路","role": "🛤️ 国家存折","dps": 0.44,"strategy": "bond",
+               "key_metric": "股息率","other_metrics": ["PB", "运量"],
+               "mental_check": "这是甚至不需要看K线的股票。把它当成永续债。",
+               "report_focus": "关注：大秦线日均运量。","risk_point": "股息率 < 5.5%"},
+    "601985": {"name": "中国核电","role": "⚛️ 绿色引擎","dps": 0.17,"strategy": "growth",
+               "key_metric": "PE(TTM)","other_metrics": ["PB", "装机量"],
+               "mental_check": "还在长身体的孩子。工资定投的首选对象。",
+               "report_focus": "关注：新能源装机增速与电价弹性。","risk_point": "PE > 25倍"},
+    "600519": {"name": "贵州茅台","role": "👑 A股之王","dps": 30.8,"strategy": "value",
+               "key_metric": "PE(TTM)","other_metrics": ["批价", "直销比"],
+               "mental_check": "它是社交货币。跌破1400是上帝给的礼物。",
+               "report_focus": "关注：i茅台直销占比与提价预期。","risk_point": "PE > 40倍"},
+    "000858": {"name": "五粮液","role": "🍷 价值前锋","dps": 4.67,"strategy": "value",
+               "key_metric": "PE(TTM)","other_metrics": ["预收款", "动销"],
+               "mental_check": "这是翻身仗。110左右极度低估，125以下只买不卖。",
+               "report_focus": "关注：合同负债蓄水池深度。","risk_point": "PE > 25倍"},
+    "000333": {"name": "美的集团","role": "🤖 全球制造","dps": 3.0,"strategy": "growth",
+               "key_metric": "PE(TTM)","other_metrics": ["分红率", "外销比"],
+               "mental_check": "代替京沪高铁和紫金，中国制造业巅峰。",
+               "report_focus": "关注：B端业务(机器人/楼宇)增速。","risk_point": "PE > 20倍"},
+    "601882": {"name": "海天精工","role": "⚙️ 工业母机","dps": 0.5,"strategy": "cyclical",
+               "key_metric": "PE(TTM)","other_metrics": ["PB", "订单"],
+               "mental_check": "赌中国制造业设备更新红利。",
+               "report_focus": "关注：龙门加工中心出口订单。","risk_point": "PE > 30倍"},
+    "002415": {"name": "海康威视","role": "📹 智能监控","dps": 0.40,"strategy": "growth",
+               "key_metric": "PE(TTM)","other_metrics": ["PB", "营收增速", "毛利率"],
+               "mental_check": "专注全球安防与AI增长，估值合理时是长期定投标的。",
+               "report_focus": "关注：安防业务增速、海外市场占比及AI视频智能化落地。","risk_point": "PE > 30倍"}
 }
 
 class AutoStrategy:
@@ -116,57 +93,49 @@ class AutoStrategy:
         df = self.get_data()
         if df is None or df.empty: return None
         results = []
-        for index, row in df.iterrows():
+        for _, row in df.iterrows():
             code = row['代码']
             cfg = self.portfolio.get(code)
             
-            # 数据清洗
             def clean(val):
                 try: return float(val) if val not in ['-', '--', None] else 0.0
                 except: return 0.0
 
-            price = clean(row['最新价'])
-            pe = clean(row['市盈率-动态'])
-            pb = clean(row['市净率'])
+            price = clean(row.get('最新价', 0))
+            pe = clean(row.get('市盈率-动态', 0))
+            pb = clean(row.get('市净率', 0))
             div_yield = (cfg['dps'] / price * 100) if price > 0 else 0
-            
-            # 核心指标
+
             key_name, key_value, key_color = cfg['key_metric'], "", "#333"
             if key_name == "股息率": key_value, key_color = f"{div_yield:.2f}%", "#d93025" if div_yield > 4.5 else "#333"
             elif key_name == "PB": key_value, key_color = f"{pb}", "#d93025" if pb < 1.3 else "#333"
             elif key_name == "PE(TTM)": key_value, key_color = f"{pe}", "#d93025" if 0 < pe < 16 else "#333"
 
-            # 标签
             tags = []
             for m in cfg.get('other_metrics', []):
                 if m == "股息率": tags.append(f"股息:{div_yield:.2f}%")
                 elif m == "PE(TTM)": tags.append(f"PE:{pe}")
                 elif m == "PB": tags.append(f"PB:{pb}")
                 elif m == "利差": tags.append(f"利差:{(div_yield - self.bond_yield):.2f}%")
+                elif m == "营收增速": tags.append("营收增速:NA")
+                elif m == "毛利率": tags.append("毛利率:NA")
                 elif m == "装机量": tags.append(f"核+绿")
-                elif m == "批价": tags.append(f"价稳")
-                elif m == "运量": tags.append(f"运稳")
-                elif m == "营收增速": 
-                    try: revenue_growth = clean(row.get("营业收入同比", 0)); tags.append(f"营收增速:{revenue_growth:.2f}%")
-                    except: tags.append("营收增速:NA")
-                elif m == "毛利率":
-                    try: gross_margin = clean(row.get("毛利率", 0)); tags.append(f"毛利率:{gross_margin:.2f}%")
-                    except: tags.append("毛利率:NA")
+                elif m == "批价": tags.append("价稳")
+                elif m == "运量": tags.append("运稳")
                 elif m == "分红率": tags.append(f"分红率:{div_yield:.2f}%")
                 elif m == "外销比": tags.append("外销比:NA")
                 elif m == "订单": tags.append("订单:NA")
 
-            # 信号
             signal, color, tip = "🔒 锁仓", "#333", "拒绝诱惑"
             st_type = cfg['strategy']
             if st_type == "bond": 
                 if div_yield >= 5.5: signal, color, tip = "🔴 黄金红利", "#d93025", "捡钱"
             elif st_type == "growth": 
-                if key_name == "PE(TTM)" and 0 < pe <= 25:  # 海康合理区间
+                if key_name == "PE(TTM)" and 0 < pe <= 25: 
                     signal, color, tip = "🔴 长线机会", "#d93025", "关注并定投"
             elif st_type == "value": 
-                if price <= cfg.get('buy_price', 0) or (0 < pe <= 14): signal, color, tip = "🔴 价值回归", "#d93025", "重仓"
-            
+                if 0 < pe <= 14: signal, color, tip = "🔴 价值回归", "#d93025", "重仓"
+
             report_alert = f"<div style='margin-top:5px; color:#d35400; font-size:12px; font-weight:bold;'>📊 研报重点：{cfg['report_focus']}</div>"
             
             results.append({
@@ -234,4 +203,20 @@ def send_email(title, content):
     msg['From'], msg['Subject'] = Header("十五五资产助理", 'utf-8'), Header(title, 'utf-8')
     try:
         s = smtplib.SMTP_SSL("smtp.qq.com", 465)
-        s
+        s.login(SENDER_EMAIL, SENDER_PASSWORD)
+        s.sendmail(SENDER_EMAIL, receivers, msg.as_string())
+        s.close()
+        print("Email 发送成功")
+    except Exception as e:
+        print(f"Email 发送失败: {e}")
+
+if __name__ == "__main__":
+    bot = AutoStrategy()
+    data = bot.analyze()
+    if data:
+        title = f"🛡️ 生存资产报告 {datetime.now().strftime('%m-%d')}"
+        html = bot.generate_html(data)
+        send_pushplus(title, html)
+        send_email(title, html)
+    else:
+        print("❌ 数据分析为空，请检查接口或网络")
