@@ -24,6 +24,7 @@ QUOTES = [
 ]
 
 # ========================= 3. 2026 战略持仓图谱 =========================
+# 修正：增加了更多的容错字段和逻辑
 PORTFOLIO_CFG = {
     "600900": {
         "name": "长江电力", "role": "🏔️ 养老基石", "dps": 0.95, "strategy": "bond", 
@@ -50,7 +51,7 @@ PORTFOLIO_CFG = {
         "report_focus": "关注【新能源（风光）】装机增速。", "risk_point": "PE > 25倍"
     },
     "600519": {
-        "name": "贵州茅台", "role": "👑 A股之王", "dps": 30.8, "strategy": "value",
+        "name": "贵州茅台", "role": "👑 股王", "dps": 30.8, "strategy": "value",
         "key_metric": "PE(TTM)", "other_metrics": ["批价", "直销比"],
         "mental": "它是社交货币。跌破1400是上帝给的礼物。",
         "report_focus": "关注【i茅台】直销占比。", "risk_point": "PE > 40倍"
@@ -79,7 +80,7 @@ class AutoStrategy:
     def __init__(self):
         self.portfolio = PORTFOLIO_CFG
         self.today = datetime.now()
-        self.bond_yield = 2.10 # 10年期国债收益率基准
+        self.bond_yield = 2.10 
 
     def get_market_status(self):
         month = self.today.month
@@ -93,21 +94,36 @@ class AutoStrategy:
 
     def get_data(self):
         try:
+            print("正在获取数据...")
+            # 获取实时行情
             df = ak.stock_zh_a_spot_em()
+            # 统一代码格式，确保匹配
+            df['代码'] = df['代码'].astype(str)
             codes = list(self.portfolio.keys())
             return df[df['代码'].isin(codes)].copy()
-        except: return None
+        except Exception as e:
+            print(f"数据获取错误: {e}")
+            return None
 
     def analyze(self):
         df = self.get_data()
-        if df is None: return None
+        if df is None or df.empty: return None
         results = []
-        status_msg, _ = self.get_market_status()
         
         for _, row in df.iterrows():
             code = row['代码']
             cfg = self.portfolio.get(code)
-            price, pe, pb = row['最新价'], row['市盈率-动态'], row['市净率']
+            
+            # 修正：增加对 "--" 或 NaN 的处理，防止 float() 报错
+            def clean_val(val):
+                try:
+                    if pd.isna(val) or val == "-" or val == "--": return 0.0
+                    return float(val)
+                except: return 0.0
+
+            price = clean_val(row['最新价'])
+            pe = clean_val(row['市盈率-动态'])
+            pb = clean_val(row['市净率'])
             div_yield = (cfg['dps'] / price * 100) if price > 0 else 0
             
             # 核心C位指标逻辑
@@ -115,27 +131,29 @@ class AutoStrategy:
             if key_name == "股息率":
                 key_value = f"{div_yield:.2f}%"
                 key_color = "#d93025" if div_yield > 4.5 else "#333"
-            else:
-                target_val = pe if key_name == "PE(TTM)" else pb
-                key_value = f"{target_val}"
-                key_color = "#d93025" if (key_name=="PE(TTM)" and pe<15) or (key_name=="PB" and pb<1.2) else "#333"
+            elif key_name == "PE(TTM)":
+                key_value = f"{pe:.1f}"
+                key_color = "#d93025" if pe > 0 and pe < 15 else "#333"
+            elif key_name == "PB":
+                key_value = f"{pb:.2f}"
+                key_color = "#d93025" if pb > 0 and pb < 1.2 else "#333"
 
-            # 信号生成
+            # 信号生成逻辑修正
             signal, color, tip = "🔒 锁仓", "#7f8c8d", "耐心是最高的美德"
             st_type = cfg['strategy']
             if st_type == "bond":
                 if div_yield >= 5.5: signal, color, tip = "🔴 极佳红利", "#d93025", "捡钱时刻"
             elif st_type == "value":
-                if pe <= 13: signal, color, tip = "🔴 价值回归", "#d93025", "黄金坑位"
+                if 0 < pe <= 13: signal, color, tip = "🔴 价值回归", "#d93025", "黄金坑位"
             elif st_type == "growth":
-                if pe <= 18: signal, color, tip = "🟢 定投买入", "#27ae60", "长期布局"
+                if 0 < pe <= 18: signal, color, tip = "🟢 定投买入", "#27ae60", "长期布局"
 
-            # 附加标签
+            # 附加标签显示
             tags = []
             for m in cfg.get('other_metrics', []):
                 if "利差" in m: tags.append(f"利差:{(div_yield - self.bond_yield):.2f}%")
                 else: tags.append(m)
-            tags.append(f"PE:{pe}")
+            if pe > 0: tags.append(f"PE:{pe:.1f}")
 
             results.append({
                 "name": cfg['name'], "role": cfg['role'], "price": price,
@@ -150,7 +168,7 @@ class AutoStrategy:
         status_msg, status_color = self.get_market_status()
         
         html = f"""<div style="font-family:'Helvetica Neue', Arial, sans-serif; max-width:600px; margin:0 auto; background:#f4f4f4; padding:20px;">
-            <div style="background:#000; color:#fff; padding:20px; border-radius:12px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+            <div style="background:#000; color:#fff; padding:20px; border-radius:12px; text-align:center;">
                 <h3 style="margin:0; font-size:22px;">🛡️ 十五五·生存战报</h3>
                 <p style="margin:5px 0 0; font-size:12px; opacity:0.8;">{self.today.strftime("%Y-%m-%d")} | <span style="color:{status_color}; font-weight:bold;">{status_msg}</span></p>
             </div>
@@ -159,15 +177,15 @@ class AutoStrategy:
         for item in data:
             tags_html = "".join([f"<span style='background:#eee; padding:2px 6px; border-radius:4px; margin-right:5px; font-size:11px; color:#666;'>{t}</span>" for t in item['tags']])
             html += f"""
-            <div style="background:#fff; border-radius:12px; padding:15px; margin-bottom:15px; box-shadow:0 2px 8px rgba(0,0,0,0.05); border:1px solid #ddd;">
+            <div style="background:#fff; border-radius:12px; padding:15px; margin-bottom:15px; border:1px solid #ddd;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div>
+                    <div style="width:70%;">
                         <div style="font-size:18px; font-weight:bold; color:#333;">{item['name']} <span style="font-size:12px; color:#888; font-weight:normal;">{item['role']}</span></div>
                         <div style="margin-top:5px;">{tags_html}</div>
                     </div>
-                    <div style="text-align:right;">
-                        <div style="font-size:12px; color:#999;">{item['key_name']}</div>
-                        <div style="font-size:20px; font-weight:bold; color:{item['key_color']};">{item['key_val']}</div>
+                    <div style="width:30%; text-align:right;">
+                        <div style="font-size:11px; color:#999;">{item['key_name']}</div>
+                        <div style="font-size:18px; font-weight:bold; color:{item['key_color']};">{item['key_val']}</div>
                     </div>
                 </div>
                 <div style="margin-top:15px; padding:10px; background:#eef6fc; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
@@ -193,14 +211,19 @@ class AutoStrategy:
             # 发送 PushPlus
             if PUSHPLUS_TOKEN:
                 requests.post('http://www.pushplus.plus/send', json={"token": PUSHPLUS_TOKEN, "title": f"战术看板 {self.today.strftime('%m-%d')}", "content": html, "template": "html"})
-            # 发送 Email (代码逻辑保持不变)
+            # 邮件发送保持原逻辑
             if SENDER_EMAIL and RECEIVER_EMAIL:
-                msg = MIMEText(html, 'html', 'utf-8')
-                msg['From'], msg['To'], msg['Subject'] = Header("Mango Investment", 'utf-8'), Header("Owner", 'utf-8'), Header(f"战术看板 {self.today.strftime('%m-%d')}", 'utf-8')
-                server = smtplib.SMTP_SSL('smtp.qq.com', 465)
-                server.login(SENDER_EMAIL, SENDER_PASSWORD)
-                server.sendmail(SENDER_EMAIL, [RECEIVER_EMAIL], msg.as_string())
-                server.quit()
+                try:
+                    msg = MIMEText(html, 'html', 'utf-8')
+                    msg['From'] = Header("Mango Investment", 'utf-8')
+                    msg['To'] = Header("Owner", 'utf-8')
+                    msg['Subject'] = Header(f"战术看板 {self.today.strftime('%m-%d')}", 'utf-8')
+                    server = smtplib.SMTP_SSL('smtp.qq.com', 465)
+                    server.login(SENDER_EMAIL, SENDER_PASSWORD)
+                    server.sendmail(SENDER_EMAIL, [RECEIVER_EMAIL], msg.as_string())
+                    server.quit()
+                except Exception as e:
+                    print(f"邮件错误: {e}")
             print("Done.")
 
 if __name__ == "__main__":
