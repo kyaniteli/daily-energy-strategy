@@ -23,7 +23,7 @@ QUOTES = [
     "“真正的风控，是买入那个 30 年后肯定还在的公司。”"
 ]
 
-# ========================= 十五五 · 8大金刚配置 =========================
+# ========================= 十五五 · 9大金刚配置 =========================
 PORTFOLIO_CFG = {
     "600900": {
         "name": "长江电力", "role": "🏔️ 养老基石", "dps": 0.95, "strategy": "bond",
@@ -72,6 +72,17 @@ PORTFOLIO_CFG = {
         "key_metric": "PE(TTM)", "other_metrics": ["PB", "订单"],
         "mental_check": "赌中国制造业设备更新红利。",
         "report_focus": "关注：龙门加工中心出口订单。", "risk_point": "PE > 30倍"
+    },
+    "002415": {  # 新增海康威视
+        "name": "海康威视",
+        "role": "📹 智能监控",
+        "dps": 0.40,
+        "strategy": "growth",
+        "key_metric": "PE(TTM)",
+        "other_metrics": ["PB", "营收增速", "毛利率"],
+        "mental_check": "专注全球安防与AI增长，估值合理时是长期定投标的。",
+        "report_focus": "关注：安防业务增速、海外市场占比及AI视频智能化落地。",
+        "risk_point": "PE > 30倍"
     }
 }
 
@@ -109,7 +120,7 @@ class AutoStrategy:
             code = row['代码']
             cfg = self.portfolio.get(code)
             
-            # 数据清洗：防止返回 '--' 等导致 float 转换失败
+            # 数据清洗
             def clean(val):
                 try: return float(val) if val not in ['-', '--', None] else 0.0
                 except: return 0.0
@@ -119,7 +130,7 @@ class AutoStrategy:
             pb = clean(row['市净率'])
             div_yield = (cfg['dps'] / price * 100) if price > 0 else 0
             
-            # C位指标逻辑
+            # 核心指标
             key_name, key_value, key_color = cfg['key_metric'], "", "#333"
             if key_name == "股息率": key_value, key_color = f"{div_yield:.2f}%", "#d93025" if div_yield > 4.5 else "#333"
             elif key_name == "PB": key_value, key_color = f"{pb}", "#d93025" if pb < 1.3 else "#333"
@@ -135,6 +146,15 @@ class AutoStrategy:
                 elif m == "装机量": tags.append(f"核+绿")
                 elif m == "批价": tags.append(f"价稳")
                 elif m == "运量": tags.append(f"运稳")
+                elif m == "营收增速": 
+                    try: revenue_growth = clean(row.get("营业收入同比", 0)); tags.append(f"营收增速:{revenue_growth:.2f}%")
+                    except: tags.append("营收增速:NA")
+                elif m == "毛利率":
+                    try: gross_margin = clean(row.get("毛利率", 0)); tags.append(f"毛利率:{gross_margin:.2f}%")
+                    except: tags.append("毛利率:NA")
+                elif m == "分红率": tags.append(f"分红率:{div_yield:.2f}%")
+                elif m == "外销比": tags.append("外销比:NA")
+                elif m == "订单": tags.append("订单:NA")
 
             # 信号
             signal, color, tip = "🔒 锁仓", "#333", "拒绝诱惑"
@@ -142,15 +162,13 @@ class AutoStrategy:
             if st_type == "bond": 
                 if div_yield >= 5.5: signal, color, tip = "🔴 黄金红利", "#d93025", "捡钱"
             elif st_type == "growth": 
-                if pe > 0 and pe <= 18: signal, color, tip = "🔴 机会定投", "#d93025", "积累"
+                if key_name == "PE(TTM)" and 0 < pe <= 25:  # 海康合理区间
+                    signal, color, tip = "🔴 长线机会", "#d93025", "关注并定投"
             elif st_type == "value": 
                 if price <= cfg.get('buy_price', 0) or (0 < pe <= 14): signal, color, tip = "🔴 价值回归", "#d93025", "重仓"
             
-            report_alert = ""
-            status_msg, _ = self.get_market_status()
-            # 财报提醒不仅限于4月，增加研报关注点展示
             report_alert = f"<div style='margin-top:5px; color:#d35400; font-size:12px; font-weight:bold;'>📊 研报重点：{cfg['report_focus']}</div>"
-
+            
             results.append({
                 "base": {"name": cfg['name'], "role": cfg['role'], "price": price},
                 "key": {"name": key_name, "val": key_value, "color": key_color},
@@ -216,20 +234,4 @@ def send_email(title, content):
     msg['From'], msg['Subject'] = Header("十五五资产助理", 'utf-8'), Header(title, 'utf-8')
     try:
         s = smtplib.SMTP_SSL("smtp.qq.com", 465)
-        s.login(SENDER_EMAIL, SENDER_PASSWORD)
-        s.sendmail(SENDER_EMAIL, receivers, msg.as_string())
-        s.close()
-        print("Email 发送成功")
-    except Exception as e:
-        print(f"Email 发送失败: {e}")
-
-if __name__ == "__main__":
-    bot = AutoStrategy()
-    data = bot.analyze()
-    if data:
-        title = f"🛡️ 生存资产报告 {datetime.now().strftime('%m-%d')}"
-        html = bot.generate_html(data)
-        send_pushplus(title, html)
-        send_email(title, html)
-    else:
-        print("❌ 数据分析为空，请检查接口或网络")
+        s
