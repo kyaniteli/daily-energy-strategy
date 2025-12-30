@@ -29,7 +29,7 @@ PORTFOLIO_CFG = {
                "key_metric": "股息率","other_metrics": ["PE(TTM)", "利差"],
                "mental_check": "它负责兜底。只要跌下来，就是加仓送分题。",
                "report_focus": "关注：来水情况与折旧完结进度。","risk_point": "股息率 < 2.8%"},
-    "601088": {"name": "中国神华","role": "⚫️ 能源底座","dps": 2.26,"strategy": "bond",
+    "601088": {"name": "中国神华","role": "⚫️ 能源底座","dps": 2.62,"strategy": "bond",
                "key_metric": "股息率","other_metrics": ["煤价", "长协比"],
                "mental_check": "家里有矿，心中不慌。高位不追，回调加仓。",
                "report_focus": "关注：煤电一体化对冲效果。","risk_point": "股息率 < 5.0%"},
