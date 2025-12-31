@@ -53,10 +53,17 @@ PORTFOLIO_CFG = {
                "key_metric": "PE(TTM)","other_metrics": ["分红率", "外销比"],
                "mental_check": "代替京沪高铁和紫金，中国制造业巅峰。",
                "report_focus": "关注：B端业务(机器人/楼宇)增速。","risk_point": "PE > 20倍"},
-    "601882": {"name": "海天精工","role": "⚙️ 工业母机","dps": 0.5,"strategy": "cyclical",
-               "key_metric": "PE(TTM)","other_metrics": ["PB", "订单"],
-               "mental_check": "赌中国制造业设备更新红利。",
-               "report_focus": "关注：龙门加工中心出口订单。","risk_point": "PE > 30倍"},
+    "000568": {
+    "name": "泸州老窖",
+    "role": "🚀 进攻核心",          # 定位：区别于五粮液的“稳”，它是用来博取超额弹性的
+    "dps": 6.30,                   # 数据源：基于2025保守EPS 9.0元 * 70%分红率测算
+    "strategy": "offensive",       # 策略标签：用于触发脚本中“高波动、高赔率”的交易逻辑
+    "key_metric": "PE(TTM)",       # 核心触发器
+    "other_metrics": ["1573批价", "股息率(>5%)", "经营现金流/净利润"], # 进攻股必须看现金流含金量，防止压货虚增业绩
+    "mental_check": "5.4%股息率是保底债券，PE 12倍是免费期权。120元以下是市场定价错误。",
+    "report_focus": "关注：主动降速后的'合同负债'（蓄水池）是否企稳，以及国窖1573的批价是否坚挺。",
+    "risk_point": "PE > 30倍 或 批价严重倒挂" # 进攻股的止盈线要比防守股高，但批价倒挂是死线
+},
     "002415": {"name": "海康威视","role": "📹 智能监控","dps": 0.40,"strategy": "growth",
                "key_metric": "PE(TTM)","other_metrics": ["PB", "营收增速", "毛利率"],
                "mental_check": "专注全球安防与AI增长，估值合理时是长期定投标的。",
