@@ -159,7 +159,7 @@ class AutoStrategy:
         status_msg, status_color = self.get_market_status()
         html = f"""<div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f0f2f5; padding: 15px;">
             <div style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 20px; font-weight: 900; color: #1a1a1a; letter-spacing: 1px;">🛡️ 十五五 · 生存资产看板</div>
+                <div style="font-size: 20px; font-weight: 900; color: #1a1a1a; letter-spacing: 1px;">🛡️ Mango看板</div>
                 <div style="font-size: 12px; color: #888; margin-top: 4px;">{self.today.strftime("%Y-%m-%d %H:%M")} | 上班定投 · 下班收息</div>
                 <div style="margin-top: 8px; display: inline-block; background-color: {status_color}; color: white; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">{status_msg}</div>
             </div>
