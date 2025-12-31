@@ -183,7 +183,7 @@ class AutoStrategy:
                     <div style="font-size: 12px; color: #2c3e50; font-weight: 500; line-height: 1.5;">🧠 {mind['check']}</div>{mind['alert']}
                 </div>
             </div>"""
-        return html + "<div style='text-align:center; color:#bbb; font-size:10px; margin-top:20px;'>🛡️ 十五五生存系统 By AI Strategy</div></div>"
+        return html + "<div style='text-align:center; color:#bbb; font-size:10px; margin-top:20px;'>🛡️ Mango小火箭日报 By AI Strategy</div></div>"
 
 def send_pushplus(title, content):
     if not PUSHPLUS_TOKEN: 
@@ -221,7 +221,7 @@ if __name__ == "__main__":
     bot = AutoStrategy()
     data = bot.analyze()
     if data:
-        title = f"🛡️ 生存资产报告 {datetime.now().strftime('%m-%d')}"
+        title = f"🛡️ Mango小火箭日报 {datetime.now().strftime('%m-%d')}"
         html = bot.generate_html(data)
         send_pushplus(title, html)
         send_email(title, html)
