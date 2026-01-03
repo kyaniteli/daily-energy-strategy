@@ -1,20 +1,16 @@
+```python
 import akshare as ak
 import pandas as pd
 import requests
 import os
-import smtplib
 import random
-from email.mime.text import MIMEText
-from email.header import Header
 from datetime import datetime, timedelta
 
 # ========================= 环境变量 =========================
+# 只需要配置 PUSHPLUS_TOKEN 即可
 PUSHPLUS_TOKEN = os.getenv("PUSHPLUS_TOKEN", "")
-SENDER_EMAIL = os.getenv("SENDER_EMAIL")
-SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
-RECEIVER_EMAIL = os.getenv("RECEIVER_EMAIL", "")
 
-# ========================= 1. 金刚配置 (完全恢复原版) =========================
+# ========================= 1. 金刚配置 (核心持仓) =========================
 QUOTES = [
     "“长江的水，神华的煤，广核的电，茅台的酒。这是中国最硬的物理资产。”",
     "“太贵了就不买，哪怕它涨到天上去。错失不是亏损。”",
@@ -23,51 +19,32 @@ QUOTES = [
     "“真正的风控，是买入那个 30 年后肯定还在的公司。”"
 ]
 
-# 这里恢复了所有的字段，包括 mental_check
 PORTFOLIO_CFG = {
     "600900": {"name": "长江电力","role": "🏔️ 养老基石","dps": 0.95,"strategy": "bond",
-               "key_metric": "股息率","other_metrics": ["PE(TTM)", "利差"],
-               "mental_check": "它负责兜底。只要跌下来，就是加仓送分题。",
-               "report_focus": "关注：来水情况与折旧完结进度。","risk_point": "股息率 < 2.8%"},
+               "key_metric": "股息率","mental_check": "它负责兜底。只要跌下来，就是加仓送分题。"},
     "601088": {"name": "中国神华","role": "⚫️ 能源底座","dps": 2.62,"strategy": "bond",
-               "key_metric": "股息率","other_metrics": ["煤价", "长协比"],
-               "mental_check": "家里有矿，心中不慌。高位不追，回调加仓。",
-               "report_focus": "关注：煤电一体化对冲效果。","risk_point": "股息率 < 5.0%"},
+               "key_metric": "股息率","mental_check": "家里有矿，心中不慌。高位不追，回调加仓。"},
     "601006": {"name": "大秦铁路","role": "🛤️ 国家存折","dps": 0.44,"strategy": "bond",
-               "key_metric": "股息率","other_metrics": ["PB", "运量"],
-               "mental_check": "这是甚至不需要看K线的股票。把它当成永续债。",
-               "report_focus": "关注：大秦线日均运量。","risk_point": "股息率 < 5.5%"},
+               "key_metric": "股息率","mental_check": "这是甚至不需要看K线的股票。把它当成永续债。"},
     "601985": {"name": "中国核电","role": "⚛️ 绿色引擎","dps": 0.17,"strategy": "growth",
-               "key_metric": "PE(TTM)","other_metrics": ["PB", "装机量"],
-               "mental_check": "还在长身体的孩子。工资定投的首选对象。",
-               "report_focus": "关注：新能源装机增速与电价弹性。","risk_point": "PE > 25倍"},
+               "key_metric": "PE(TTM)","mental_check": "还在长身体的孩子。工资定投的首选对象。"},
     "600519": {"name": "贵州茅台","role": "👑 A股之王","dps": 30.8,"strategy": "value",
-               "key_metric": "PE(TTM)","other_metrics": ["批价", "直销比"],
-               "mental_check": "它是社交货币。跌破1400是上帝给的礼物。",
-               "report_focus": "关注：i茅台直销占比与提价预期。","risk_point": "PE > 40倍"},
+               "key_metric": "PE(TTM)","mental_check": "它是社交货币。跌破1400是上帝给的礼物。"},
     "000858": {"name": "五粮液","role": "🍷 价值前锋","dps": 4.67,"strategy": "value",
-               "key_metric": "PE(TTM)","other_metrics": ["预收款", "动销"],
-               "mental_check": "这是翻身仗。110左右极度低估，125以下只买不卖。",
-               "report_focus": "关注：合同负债蓄水池深度。","risk_point": "PE > 25倍"},
+               "key_metric": "PE(TTM)","mental_check": "这是翻身仗。110左右极度低估，125以下只买不卖。"},
     "000333": {"name": "美的集团","role": "🤖 全球制造","dps": 3.0,"strategy": "growth",
-               "key_metric": "PE(TTM)","other_metrics": ["分红率", "外销比"],
-               "mental_check": "代替京沪高铁和紫金，中国制造业巅峰。",
-               "report_focus": "关注：B端业务(机器人/楼宇)增速。","risk_point": "PE > 20倍"},
+               "key_metric": "PE(TTM)","mental_check": "代替京沪高铁和紫金，中国制造业巅峰。"},
     "000568": {"name": "泸州老窖","role": "🚀 进攻核心","dps": 6.30,"strategy": "offensive",
-               "key_metric": "PE(TTM)","other_metrics": ["1573批价", "股息率", "现金流"],
-               "mental_check": "5.4%股息率是保底，PE 12倍是期权。120元以下是送钱。",
-               "report_focus": "关注：主动降速后的'合同负债'是否企稳。", "risk_point": "PE > 30倍 或 批价倒挂"},
+               "key_metric": "PE(TTM)","mental_check": "5.4%股息率是保底，PE 12倍是期权。"},
     "002415": {"name": "海康威视","role": "📹 智能监控","dps": 0.40,"strategy": "growth",
-               "key_metric": "PE(TTM)","other_metrics": ["PB", "增速"],
-               "mental_check": "专注全球安防与AI增长，估值合理时是长期定投标的。",
-               "report_focus": "关注：安防业务增速及AI落地。","risk_point": "PE > 30倍"}
+               "key_metric": "PE(TTM)","mental_check": "专注全球安防与AI增长，估值合理时是长期定投标的。"}
 }
 
-# ========================= 2. 晨爷配置 (新增) =========================
+# ========================= 2. 晨爷配置 (潜伏策略) =========================
 CHENYE_CFG = {
     "MAX_PRICE": 15.0,        # 价格上限
     "MAX_CAP_BILLION": 60,    # 市值上限(亿)
-    "POSITION_THRESHOLD": 20, # 位置水位(%)
+    "POSITION_THRESHOLD": 20, # 位置水位(%) (当前价在近4年区间的百分比)
     "HISTORY_YEARS": 4        # 回溯历史(年)
 }
 
@@ -75,7 +52,7 @@ class AutoStrategy:
     def __init__(self):
         self.portfolio = PORTFOLIO_CFG
         self.today = datetime.now()
-        self.bond_yield = 2.10 
+        self.bond_yield = 2.10  # 十年期国债收益率锚
         self.df_all = None
 
     def get_market_status(self):
@@ -92,12 +69,12 @@ class AutoStrategy:
         try:
             print("📡 拉取全市场实时行情...")
             df = ak.stock_zh_a_spot_em()
-            # 统一列名
+            # 统一列名，方便后续处理
             df = df.rename(columns={
                 '代码': 'symbol', '名称': 'name', '最新价': 'price', 
                 '总市值': 'market_cap', '市盈率-动态': 'pe_ttm', '涨跌幅': 'change'
             })
-            # 简单清洗
+            # 数据清洗，确保全是数字
             df['symbol'] = df['symbol'].astype(str)
             df['price'] = pd.to_numeric(df['price'], errors='coerce')
             df['market_cap'] = pd.to_numeric(df['market_cap'], errors='coerce')
@@ -122,11 +99,11 @@ class AutoStrategy:
             cfg = self.portfolio.get(code)
             price = row['price']
             
-            # 计算
+            # 计算股息率和利差
             current_yield = (cfg['dps'] / price * 100) if price > 0 else 0
             spread = current_yield - self.bond_yield
             
-            # 状态判定
+            # 简单状态评级
             status = "😐"
             if cfg['strategy'] == 'bond':
                 if spread >= 1.5: status = "💎 低估"
@@ -140,7 +117,7 @@ class AutoStrategy:
             results.append({
                 "name": cfg['name'], "role": cfg['role'], "price": price,
                 "yield": round(current_yield, 2), "spread": round(spread, 2),
-                "status": status, "mental": cfg.get('mental_check', '') # 这里加个 get 防止万一
+                "status": status, "mental": cfg.get('mental_check', '')
             })
         return results
 
@@ -149,24 +126,29 @@ class AutoStrategy:
         if self.df_all is None: return []
         print("🏴‍☠️ 扫描晨爷潜伏标的...")
         
-        # 1. 粗筛
+        # 1. 粗筛：排除ST，限制市值和价格
         df = self.df_all.copy()
-        df = df[~df['name'].str.contains('ST|退|北')]
+        # 排除 ST、退市、北交所(简单排除8/4/3开头的)
+        df = df[~df['name'].str.contains('ST|退')]
+        df = df[~df['symbol'].str.startswith(('8', '4', '92'))] 
+
         df = df[
             (df['market_cap'] < CHENYE_CFG['MAX_CAP_BILLION'] * 100000000) & 
             (df['price'] < CHENYE_CFG['MAX_PRICE']) & 
-            (df['price'] > 2.0)
+            (df['price'] > 2.0) # 排除过低垃圾股
         ]
         
-        # 取前100个小市值的去算历史位置，防止超时
-        candidates = df.sort_values(by='market_cap').head(100)
+        # 2. 性能优化：只取市值最小的前 50 个去算历史位置，防止 Action 超时
+        candidates = df.sort_values(by='market_cap').head(50)
         results = []
 
         end_date = self.today.strftime("%Y%m%d")
         start_date = (self.today - timedelta(days=365 * CHENYE_CFG['HISTORY_YEARS'])).strftime("%Y%m%d")
 
+        print(f"🔍 正在深入分析 {len(candidates)} 只候选股...")
         for _, row in candidates.iterrows():
             try:
+                # 获取个股历史数据
                 hist = ak.stock_zh_a_hist(symbol=row['symbol'], start_date=start_date, end_date=end_date, adjust="qfq")
                 if hist.empty or len(hist) < 100: continue
                 
@@ -174,6 +156,7 @@ class AutoStrategy:
                 low = hist['最低'].min()
                 if high == low: continue
                 
+                # 计算目前价格在历史区间的位置 (0% = 历史最低, 100% = 历史最高)
                 pos = round(((row['price'] - low) / (high - low)) * 100, 2)
                 
                 if pos <= CHENYE_CFG['POSITION_THRESHOLD']:
@@ -185,106 +168,166 @@ class AutoStrategy:
             except:
                 continue
         
+        # 按位置越低越好排序，取前10
         return sorted(results, key=lambda x: x['pos'])[:10]
 
-    def send_email(self, subject, html_content):
-        if not SENDER_EMAIL or not SENDER_PASSWORD:
-            print("⚠️ 未配置邮箱密码，跳过邮件发送")
-            return
-
-        msg = MIMEText(html_content, 'html', 'utf-8')
-        msg['From'] = Header(SENDER_EMAIL)
-        msg['To'] = Header(RECEIVER_EMAIL)
-        msg['Subject'] = Header(subject, 'utf-8')
-
-        try:
-            # 优先尝试 SSL (465)
-            server = smtplib.SMTP_SSL("smtp.qq.com", 465)
-            # 如果是163邮箱，请改为: server = smtplib.SMTP_SSL("smtp.163.com", 465)
-            
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)
-            server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
-            server.quit()
-            print("📧 邮件发送成功！")
-        except Exception as e:
-            print(f"❌ SSL 发送失败: {e}")
-            try:
-                # 备用尝试 TLS (587)
-                print("🔄 尝试 TLS 发送...")
-                server = smtplib.SMTP("smtp.qq.com", 587)
-                server.starttls()
-                server.login(SENDER_EMAIL, SENDER_PASSWORD)
-                server.sendmail(SENDER_EMAIL, RECEIVER_EMAIL, msg.as_string())
-                server.quit()
-                print("📧 TLS 邮件发送成功！")
-            except Exception as e2:
-                print(f"❌ 最终发送失败: {e2}")
-
     def run(self):
-        if not self.get_all_data(): return
+        # 1. 获取数据
+        if not self.get_all_data():
+            return "❌ 行情数据获取失败，请检查 AKShare 接口"
 
+        # 2. 执行分析
         kk_res = self.analyze_portfolio()
         cy_res = self.scan_chenye()
-
+        
+        # 3. 准备文案
         quote = random.choice(QUOTES)
         mkt_msg, mkt_color = self.get_market_status()
         
-        # 生成 HTML 邮件
+        # 4. 生成 HTML (适配 PushPlus)
         html = f"""
-        <div style="font-family: Arial, sans-serif; color: #333;">
-            <h2 style="color: #2c3e50;">📊 投资策略日报 ({self.today.strftime('%Y-%m-%d')})</h2>
-            <p style="background-color: #f9f9f9; padding: 10px; border-left: 4px solid #007bff;"><i>{quote}</i></p>
-            <p>市场周期: <b style="color:{mkt_color}">{mkt_msg}</b> | 国债锚: {self.bond_yield}%</p>
+        
             
-            <h3 style="border-bottom: 2px solid #ddd; padding-bottom: 5px;">🛡️ 金刚配置 (防守)</h3>
-            <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; font-size: 14px;">
-                <tr style="background-color: #f2f2f2;"><th>资产</th><th>现价</th><th>股息率</th><th>股债差</th><th>状态</th></tr>
+                📊 策略日报 {self.today.strftime('%m-%d')}
+            
+
+            
+                {quote}
+
+                📅 阶段: {mkt_msg} | ⚓ 国债: {self.bond_yield}%
+
+            
+
+            
+            🛡️ 金刚配置 (防守)
+
+            
         """
         
         for item in kk_res:
-            status_style = "color: red; font-weight: bold;" if "低估" in item['status'] or "击球" in item['status'] else "color: black;"
+            # 简单的行样式
+            status_color = "#d93025" if "低估" in item['status'] or "击球" in item['status'] else "#28a745"
             html += f"""
-                <tr>
-                    <td>{item['role']} <b>{item['name']}</b><br><span style="font-size:12px; color:#666;">{item['mental']}</span></td>
-                    <td>{item['price']}</td>
-                    <td>{item['yield']}%</td>
-                    <td>{item['spread']}</td>
-                    <td style="{status_style}">{item['status']}</td>
-                </tr>
+                
             """
-        html += "</table>"
+        html += "
+                
+                    资产
+
+                    现价
+
+                    股息%
+
+                    评价
+
+                
+
+                    
+                        {item['name']}
+
+                        {item['role']}
+                    
+
+                    {item['price']}
+
+                    {item['yield']}
+
+                    {item['status']}
+
+                
+"
 
         html += """
-            <h3 style="border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-top: 30px;">🏴‍☠️ 晨爷潜伏 (进攻)</h3>
-            <p style="font-size: 12px; color: #666;">筛选标准: 市值<60亿 | 单价<15元 | 历史位置<20%</p>
-            <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; font-size: 14px;">
-                <tr style="background-color: #f2f2f2;"><th>代码</th><th>名称</th><th>现价</th><th>位置%</th><th>市值(亿)</th></tr>
+            🏴‍☠️ 晨爷潜伏 (进攻)
+
+            筛选: 市值<60亿 | 单价<15 | 4年位置<20%
+
+            
         """
         
         if cy_res:
             for item in cy_res:
                 html += f"""
-                <tr>
-                    <td>{item['symbol']}</td>
-                    <td>{item['name']}</td>
-                    <td>{item['price']}</td>
-                    <td style="color: #28a745; font-weight: bold;">{item['pos']}%</td>
-                    <td>{item['cap']}</td>
-                </tr>
+                
                 """
         else:
-            html += "<tr><td colspan='5' style='text-align: center;'>今日无符合严格标准的潜伏标的</td></tr>"
+            html += ""
         
         html += """
-            </table>
-            <p style="margin-top: 20px; font-size: 12px; color: #999;">
-                ⚠️ 注：机器筛选结果仅供参考，晨爷策略需人工复核 [题材故事] 与 [上方压力位]。
-            </p>
-        </div>
-        """
+            
+                
+                    代码/名称
 
-        self.send_email("投资日报: 金刚+晨爷", html)
+                    现价
+
+                    位置
+
+                    市值
+
+                
+
+                    
+                        {item['name']}
+
+                        {item['symbol']}
+                    
+
+                    {item['price']}
+
+                    {item['pos']}%
+
+                    {item['cap']}亿
+
+                
+😴 今日无符合严格标准的标的
+
+            
+                AutoStrategy via GitHub Actions
+            
+
+        
+
+        """
+        
+        return html
+
+def send_pushplus(title, content):
+    """发送 PushPlus 通知 (核心修复部分)"""
+    if not PUSHPLUS_TOKEN:
+        print("⚠️ 未配置 PUSHPLUS_TOKEN，无法发送通知")
+        return
+    
+    url = 'http://www.pushplus.plus/send'
+    data = {
+        "token": PUSHPLUS_TOKEN,
+        "title": title,
+        "content": content,
+        "template": "html"  # 指定发送 HTML 格式
+    }
+    
+    try:
+        response = requests.post(url, json=data)
+        res_json = response.json()
+        if res_json.get("code") == 200:
+            print("✅ PushPlus 发送成功")
+        else:
+            print(f"❌ PushPlus 发送失败: {res_json.get('msg')}")
+    except Exception as e:
+        print(f"❌ 网络发送异常: {e}")
 
 if __name__ == "__main__":
-    app = AutoStrategy()
-    app.run()
+    print("🚀 启动策略分析...")
+    
+    # 1. 实例化策略
+    strategy = AutoStrategy()
+    
+    # 2. 运行并获取 HTML 内容
+    content = strategy.run()
+    
+    # 3. 发送 PushPlus
+    if content:
+        title = f"复盘日报 {datetime.now().strftime('%m-%d')}"
+        send_pushplus(title, content)
+    
+    print("🏁 任务完成")
+```
