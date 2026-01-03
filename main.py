@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 import os
 import random
-import time  # 引入time用于延时，防止接口被封
+import time
 from datetime import datetime, timedelta
 
 # ========================= 环境变量 =========================
@@ -19,47 +19,43 @@ QUOTES = [
 ]
 
 PORTFOLIO_CFG = {
-    "600900": {"name": "长江电力","role": "🏔️ 养老基石","dps": 0.95,"strategy": "bond","risk_point": "股息率<2.8%"},
-    "601088": {"name": "中国神华","role": "⚫️ 能源底座","dps": 2.62,"strategy": "bond","risk_point": "股息率<5.0%"},
-    "601006": {"name": "大秦铁路","role": "🛤️ 国家存折","dps": 0.44,"strategy": "bond","risk_point": "股息率<5.5%"},
-    "601985": {"name": "中国核电","role": "⚛️ 绿色引擎","dps": 0.17,"strategy": "growth","risk_point": "PE>25"},
-    "600519": {"name": "贵州茅台","role": "👑 A股之王","dps": 30.8,"strategy": "value","risk_point": "PE>40"},
-    "000858": {"name": "五粮液","role": "🍷 价值前锋","dps": 4.67,"strategy": "value","risk_point": "PE>25"},
-    "000333": {"name": "美的集团","role": "🤖 全球制造","dps": 3.0,"strategy": "growth","risk_point": "PE>20"},
-    "000568": {"name": "泸州老窖","role": "🚀 进攻核心","dps": 6.30,"strategy": "offensive","risk_point": "PE>30"},
-    "002415": {"name": "海康威视","role": "📹 智能监控","dps": 0.40,"strategy": "growth","risk_point": "PE>30"}
+    "600900": {"name": "长江电力","role": "🏔️ 养老基石","dps": 0.95,"strategy": "bond"},
+    "601088": {"name": "中国神华","role": "⚫️ 能源底座","dps": 2.62,"strategy": "bond"},
+    "601006": {"name": "大秦铁路","role": "🛤️ 国家存折","dps": 0.44,"strategy": "bond"},
+    "601985": {"name": "中国核电","role": "⚛️ 绿色引擎","dps": 0.17,"strategy": "growth"},
+    "600519": {"name": "贵州茅台","role": "👑 A股之王","dps": 30.8,"strategy": "value"},
+    "000858": {"name": "五粮液","role": "🍷 价值前锋","dps": 4.67,"strategy": "value"},
+    "000333": {"name": "美的集团","role": "🤖 全球制造","dps": 3.0,"strategy": "growth"},
+    "000568": {"name": "泸州老窖","role": "🚀 进攻核心","dps": 6.30,"strategy": "offensive"},
+    "002415": {"name": "海康威视","role": "📹 智能监控","dps": 0.40,"strategy": "growth"}
 }
 
 # ========================= 2. 晨爷配置 (进攻/投机) =========================
 CHENYE_CFG = {
-    "MAX_PRICE": 15.0,        # 单价上限
-    "MAX_CAP_BILLION": 60,    # 市值上限(亿)
-    "POSITION_THRESHOLD": 20, # 必须在历史最低的 20% 区域
-    "HISTORY_YEARS": 4        # 回溯历史4年
+    "MAX_PRICE": 15.0,        
+    "MAX_CAP_BILLION": 60,    
+    "POSITION_THRESHOLD": 20, 
+    "HISTORY_YEARS": 4        
 }
 
 class FusionStrategy:
     def __init__(self):
         self.today = datetime.now()
-        self.bond_yield = 2.10  # 十年期国债收益率(锚)
-        self.df_all = None      # 全市场数据缓存
+        self.bond_yield = 2.10  
+        self.df_all = None      
 
     def get_market_data(self):
-        """拉取全市场数据，只做一次"""
         try:
             print("📡 [1/3] 拉取全市场实时行情...")
             df = ak.stock_zh_a_spot_em()
-            # 统一列名
             df = df.rename(columns={
                 '代码': 'symbol', '名称': 'name', '最新价': 'price', 
                 '总市值': 'market_cap', '市盈率-动态': 'pe_ttm', '涨跌幅': 'change'
             })
-            # 数据清洗
             df['symbol'] = df['symbol'].astype(str)
             df['price'] = pd.to_numeric(df['price'], errors='coerce')
             df['market_cap'] = pd.to_numeric(df['market_cap'], errors='coerce')
             df['pe_ttm'] = pd.to_numeric(df['pe_ttm'], errors='coerce')
-            
             self.df_all = df
             return True
         except Exception as e:
@@ -67,12 +63,9 @@ class FusionStrategy:
             return False
 
     def analyze_kingkong(self):
-        """分析金刚配置 (Part A)"""
         print("🛡️ [2/3] 分析金刚配置...")
         results = []
         codes = list(PORTFOLIO_CFG.keys())
-        
-        # 从全市场数据中提取关注列表
         target_df = self.df_all[self.df_all['symbol'].isin(codes)].copy()
         
         for _, row in target_df.iterrows():
@@ -80,53 +73,50 @@ class FusionStrategy:
             cfg = PORTFOLIO_CFG.get(code)
             price = row['price']
             
-            # 计算指标
             current_yield = (cfg['dps'] / price * 100) if price > 0 else 0
             spread = current_yield - self.bond_yield
             
-            # 状态判定
-            status = "😐"
+            # 状态逻辑 & 颜色定义 (用于HTML)
+            status_text = "观望"
+            status_color = "#999999" # 灰色
+            bg_color = "#f8f9fa"     # 默认背景
+            
             if cfg['strategy'] == 'bond':
-                if spread >= 1.5: status = "💎 低估"
-                elif spread >= 0.5: status = "✅ 合理"
-                else: status = "⚠️ 略贵"
+                if spread >= 1.5: 
+                    status_text, status_color, bg_color = "💎 低估", "#d93025", "#fff5f5" # 红字淡红底
+                elif spread >= 0.5: 
+                    status_text, status_color, bg_color = "✅ 合理", "#188038", "#f0f9f4" # 绿字淡绿底
+                else: 
+                    status_text, status_color = "⚠️ 略贵", "#f1c40f"
             else:
                 pe = row['pe_ttm']
-                if pe > 0 and pe < 20: status = "✅ 击球区"
-                elif pe > 35: status = "⚠️ 过热"
+                if pe > 0 and pe < 20: 
+                    status_text, status_color, bg_color = "✅ 击球区", "#d93025", "#fff5f5"
+                elif pe > 35: 
+                    status_text, status_color = "⚠️ 过热", "#f1c40f"
             
             results.append({
                 "name": cfg['name'], "role": cfg['role'], "price": price,
-                "yield": round(current_yield, 2), "spread": round(spread, 2),
-                "status": status, "change": row['change']
+                "yield": f"{current_yield:.2f}", "spread": f"{spread:.2f}",
+                "status": status_text, "color": status_color, "bg": bg_color
             })
         return results
 
     def analyze_chenye(self):
-        """分析晨爷策略 (Part B)"""
-        print("🏴‍☠️ [3/3] 扫描晨爷潜伏标的 (需耗时约30秒)...")
+        print("🏴‍☠️ [3/3] 扫描晨爷潜伏标的...")
         results = []
-        
-        # 1. 粗筛 (漏斗模型)
         df = self.df_all.copy()
-        # 排除ST/退市/北交所
         df = df[~df['name'].str.contains('ST|退|北')]
-        # 排除大市值 & 高价 & 极低价
         df = df[
             (df['market_cap'] < CHENYE_CFG['MAX_CAP_BILLION'] * 100000000) & 
             (df['price'] < CHENYE_CFG['MAX_PRICE']) & 
             (df['price'] > 2.5) 
         ]
         
-        print(f"   初筛剩余: {len(df)} 只，开始取前80只计算历史位置...")
-        
-        # 为了防止GitHub超时/被封，只取按市值排序最小的前80个
         candidates = df.sort_values(by='market_cap').head(80)
         
         for _, row in candidates.iterrows():
-            # 关键修复：增加0.3秒延时，防止触发反爬虫策略
-            time.sleep(0.3)
-            
+            time.sleep(0.3) # 保持延时防止封IP
             pos_data = self.calculate_position(row['symbol'], row['price'])
             if pos_data and pos_data['pos'] <= CHENYE_CFG['POSITION_THRESHOLD']:
                 results.append({
@@ -135,24 +125,17 @@ class FusionStrategy:
                     "cap": round(row['market_cap'] / 100000000, 2)
                 })
         
-        # 按位置排序，取前10名
         return sorted(results, key=lambda x: x['pos'])[:10]
 
     def calculate_position(self, symbol, current_price):
-        """辅助函数：计算单只股票历史位置"""
         end_date = self.today.strftime("%Y%m%d")
         start_date = (self.today - timedelta(days=365 * CHENYE_CFG['HISTORY_YEARS'])).strftime("%Y%m%d")
-        
         try:
-            # 获取日线
             df = ak.stock_zh_a_hist(symbol=symbol, start_date=start_date, end_date=end_date, adjust="qfq")
             if df.empty or len(df) < 100: return None
-            
             high = df['最高'].max()
             low = df['最低'].min()
-            
             if high == low: return None
-            
             pos = round(((current_price - low) / (high - low)) * 100, 2)
             return {'pos': pos}
         except:
@@ -160,75 +143,123 @@ class FusionStrategy:
 
     def generate_report(self, kk_data, cy_data):
         quote = random.choice(QUOTES)
-        date_str = self.today.strftime("%Y-%m-%d")
+        date_str = self.today.strftime("%m-%d")
+        week_day = ["周一","周二","周三","周四","周五","周六","周日"][self.today.weekday()]
         
-        msg = f"### 📊 融合策略日报 ({date_str})\n"
-        msg += f"**今日心法**：*{quote}*\n"
-        msg += f"**十年国债**：{self.bond_yield}%\n\n"
+        # HTML 头部样式
+        html = f"""
+        <div style="font-family:'Helvetica Neue',sans-serif; max-width:600px; margin:0 auto; color:#333;">
+            <div style="background: linear-gradient(135deg, #d93025 0%, #c0392b 100%); color:white; padding:15px; border-radius:10px 10px 0 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="font-size:18px; font-weight:bold;">🛡️ 融合策略日报</div>
+                <div style="font-size:12px; opacity:0.9; margin-top:5px;">{date_str} {week_day} | 10年国债: {self.bond_yield}%</div>
+            </div>
+            <div style="background:#fff; padding:15px; border:1px solid #eee; border-top:none; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <div style="font-style:italic; color:#666; font-size:13px; margin-bottom:15px; border-left:3px solid #d93025; padding-left:10px;">
+                    {quote}
+                </div>
+                
+                <div style="font-weight:bold; color:#d93025; margin-bottom:10px; border-bottom:1px dashed #eee; padding-bottom:5px;">
+                    🛡️ 十五五·金刚配置
+                </div>
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <tr style="background:#f1f1f1; color:#666;">
+                        <th style="padding:8px; text-align:left;">资产</th>
+                        <th style="padding:8px; text-align:right;">现价</th>
+                        <th style="padding:8px; text-align:right;">股息%</th>
+                        <th style="padding:8px; text-align:center;">状态</th>
+                    </tr>
+        """
         
-        # Part A: 金刚配置
-        msg += "#### 🛡️ 十五五·金刚配置\n"
-        msg += "| 资产 | 现价 | 股息% | 股债差 | 状态 |\n"
-        msg += "| :--- | :--- | :--- | :--- | :--- |\n"
+        # 生成金刚表格
         for item in kk_data:
-            # 股息率高亮
-            y_str = f"**{item['yield']}**" if item['yield'] > 4.0 else f"{item['yield']}"
-            msg += f"| {item['role']} | {item['price']} | {y_str} | {item['spread']} | {item['status']} |\n"
+            row_style = f"background-color:{item['bg']}; border-bottom:1px solid #eee;"
+            html += f"""
+            <tr style="{row_style}">
+                <td style="padding:8px; color:#2c3e50;">
+                    <div style="font-weight:bold;">{item['name']}</div>
+                    <div style="font-size:10px; color:#999;">{item['role']}</div>
+                </td>
+                <td style="padding:8px; text-align:right; font-family:monospace; font-size:14px;">{item['price']}</td>
+                <td style="padding:8px; text-align:right; color:#d93025;">{item['yield']}</td>
+                <td style="padding:8px; text-align:center;">
+                    <span style="background:{item['color']}; color:white; padding:2px 6px; border-radius:4px; font-size:10px;">{item['status']}</span>
+                </td>
+            </tr>
+            """
             
-        msg += "\n---\n"
+        html += "</table>"
         
-        # Part B: 晨爷精选
-        msg += "#### 🏴‍☠️ 晨爷潜伏 (3D战法)\n"
+        # 生成晨爷表格
         if cy_data:
-            msg += f"*标准：市值<{CHENYE_CFG['MAX_CAP_BILLION']}亿 | 单价<{CHENYE_CFG['MAX_PRICE']}元 | 位置<{CHENYE_CFG['POSITION_THRESHOLD']}%*\n"
-            msg += "| 代码 | 名称 | 现价 | 位置% | 市值 |\n"
-            msg += "| :--- | :--- | :--- | :--- | :--- |\n"
+            html += f"""
+            <div style="font-weight:bold; color:#2c3e50; margin-top:20px; margin-bottom:10px; border-bottom:1px dashed #eee; padding-bottom:5px;">
+                🏴‍☠️ 晨爷潜伏 (市值<60亿 | 低位<20%)
+            </div>
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <tr style="background:#f1f1f1; color:#666;">
+                    <th style="padding:6px; text-align:left;">代码/名称</th>
+                    <th style="padding:6px; text-align:right;">现价</th>
+                    <th style="padding:6px; text-align:center;">位置%</th>
+                    <th style="padding:6px; text-align:right;">市值(亿)</th>
+                </tr>
+            """
             for item in cy_data:
-                msg += f"| {item['symbol']} | {item['name']} | {item['price']} | {item['pos']} | {item['cap']}亿 |\n"
-            msg += "\n⚠️ *注：晨爷策略需人工复核[题材故事]与[上方压力]*"
+                html += f"""
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:6px;">
+                        <div style="font-weight:bold; color:#333;">{item['name']}</div>
+                        <div style="font-size:10px; color:#999;">{item['symbol']}</div>
+                    </td>
+                    <td style="padding:6px; text-align:right;">{item['price']}</td>
+                    <td style="padding:6px; text-align:center;">
+                        <div style="background:#e3f2fd; color:#1976d2; padding:2px 0; border-radius:3px;">{item['pos']}%</div>
+                    </td>
+                    <td style="padding:6px; text-align:right; color:#666;">{item['cap']}</td>
+                </tr>
+                """
+            html += "</table>"
         else:
-            msg += "今日无符合严格标准的[潜伏]标的。"
+            html += """<div style="text-align:center; padding:20px; color:#999; font-size:12px;">今日无符合严格标准(20%低位)的标的</div>"""
             
-        return msg
+        html += """
+            <div style="text-align:center; margin-top:20px; font-size:10px; color:#ccc;">
+                AI Strategy Assistant
+            </div>
+            </div>
+        </div>
+        """
+        return html
 
     def send_pushplus(self, title, content):
-        # 1. 检查 Token 是否存在
         if not PUSHPLUS_TOKEN:
-            print("⚠️ 未配置 PUSHPLUS_TOKEN，仅打印日志")
-            print(content)
+            print("⚠️ Token未配置")
             return
 
-        # 2. 清洗逻辑（关键修复）：替换中文逗号 -> 分割 -> 去除空格
         tokens = PUSHPLUS_TOKEN.replace("，", ",").split(",")
         url = 'http://www.pushplus.plus/send'
         
         for token in tokens:
             t = token.strip()
             if not t: continue
-
+            
+            # 这里改为了 template: html
             data = {
                 "token": t, 
                 "title": title, 
                 "content": content, 
-                "template": "markdown"
+                "template": "html"  
             }
             
             try:
-                # 增加 timeout 防止卡死
                 res = requests.post(url, json=data, timeout=10)
-                print(f"✅ 微信推送结果 ({t[:4]}***): {res.json().get('msg')}")
+                print(f"✅ 推送结果 ({t[:4]}***): {res.json().get('msg')}")
             except Exception as e:
-                print(f"❌ 推送网络异常: {e}")
+                print(f"❌ 推送异常: {e}")
 
 if __name__ == "__main__":
     strategy = FusionStrategy()
-    
-    # 1. 获取数据
     if strategy.get_market_data():
-        # 2. 跑两个策略
         kk_res = strategy.analyze_kingkong()
         cy_res = strategy.analyze_chenye()
-        
-        # 3. 生成并发送报告
         report = strategy.generate_report(kk_res, cy_res)
-        strategy.send_pushplus("金刚+晨爷 | 融合日报", report)
+        strategy.send_pushplus("🛡️ 融合策略日报", report)
