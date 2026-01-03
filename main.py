@@ -8,6 +8,7 @@ import traceback
 from datetime import datetime, timedelta
 
 # ========================= 环境变量 =========================
+# 记得在 GitHub Secrets 里配置 PUSHPLUS_TOKEN
 PUSHPLUS_TOKEN = os.getenv("PUSHPLUS_TOKEN", "")
 
 # ========================= 1. 金刚配置 (核心持仓) =========================
@@ -33,18 +34,18 @@ PORTFOLIO_CFG = {
 
 # ========================= 2. 晨爷配置 (潜伏策略) =========================
 CHENYE_CFG = {
-    "MAX_PRICE": 20.0,        
-    "MAX_CAP_BILLION": 50,    
-    "POSITION_THRESHOLD": 15, 
-    "HISTORY_YEARS": 3,
-    "SCAN_LIMIT": 15  # 限制扫描数量，防止GitHub Action超时
+    "MAX_PRICE": 20.0,        # 价格上限
+    "MAX_CAP_BILLION": 50,    # 市值上限(亿)
+    "POSITION_THRESHOLD": 15, # 位置水位(%) - 只有在地板上的才看
+    "HISTORY_YEARS": 3,       # 回溯3年数据
+    "SCAN_LIMIT": 15          # ⚠️关键：限制每次只深度扫描15个，防止GitHub超时
 }
 
 class AutoStrategy:
     def __init__(self):
         self.portfolio = PORTFOLIO_CFG
         self.today = datetime.now()
-        self.bond_yield = 2.10
+        self.bond_yield = 2.10 # 十年期国债收益率
         self.df_all = None
 
     def get_market_status(self):
@@ -63,10 +64,7 @@ class AutoStrategy:
             # 尝试拉取实时行情
             df = ak.stock_zh_a_spot_em()
             
-            # 打印列名以便调试（如果失败了可以在日志里看到列名变没变）
-            # print(f"DEBUG: 获取到的列名: {df.columns.tolist()}")
-            
-            # 检查关键列是否存在
+            # 检查关键列是否存在，防止接口变动
             if '代码' not in df.columns or '最新价' not in df.columns:
                 print("❌ AKShare 返回数据格式异常，缺少关键列")
                 return False
@@ -79,7 +77,7 @@ class AutoStrategy:
             # 只重命名存在的列
             df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
             
-            # 数据清洗
+            # 数据清洗：转成数字格式
             df['symbol'] = df['symbol'].astype(str)
             df['price'] = pd.to_numeric(df['price'], errors='coerce')
             df['market_cap'] = pd.to_numeric(df['market_cap'], errors='coerce')
@@ -144,7 +142,7 @@ class AutoStrategy:
         results = []
         try:
             df = self.df_all.copy()
-            # 基础过滤
+            # 基础过滤: 去掉ST、退市、北交所(8/4/92开头)
             df = df[~df['name'].str.contains('ST|退')]
             df = df[~df['symbol'].str.startswith(('8', '4', '92'))]
             
@@ -156,12 +154,13 @@ class AutoStrategy:
             ]
             
             # !!! 关键修改：只取市值最小的 N 个，防止超时 !!!
+            # 晨爷策略核心就是小市值，所以我们先按市值排序，只看最小的那批
             candidates = df.sort_values(by='market_cap').head(CHENYE_CFG['SCAN_LIMIT'])
             
             end_date = self.today.strftime("%Y%m%d")
             start_date = (self.today - timedelta(days=365 * CHENYE_CFG['HISTORY_YEARS'])).strftime("%Y%m%d")
 
-            print(f"🔍 深度扫描 {len(candidates)} 只候选股 (可能会慢)...")
+            print(f"🔍 深度扫描 {len(candidates)} 只候选股 (每只暂停0.5秒)...")
             
             for i, (_, row) in enumerate(candidates.iterrows()):
                 try:
@@ -175,6 +174,7 @@ class AutoStrategy:
                     low = hist['最低'].min()
                     if high == low: continue
                     
+                    # 计算位置分位数
                     pos = round(((row['price'] - low) / (high - low)) * 100, 2)
                     
                     if pos <= CHENYE_CFG['POSITION_THRESHOLD']:
@@ -185,12 +185,12 @@ class AutoStrategy:
                         })
                 except Exception as inner_e:
                     # 单个股票失败不影响整体
-                    # print(f"  - 跳过 {row['name']}: {inner_e}")
                     continue
                     
         except Exception as e:
             print(f"⚠️ 晨爷策略扫描中断: {e}")
         
+        # 返回前8个位置最低的
         return sorted(results, key=lambda x: x['pos'])[:8]
 
     def run(self):
@@ -199,7 +199,7 @@ class AutoStrategy:
                 return "❌ 数据获取失败，请查看 Action 日志"
 
             kk_res = self.analyze_portfolio()
-            cy_res = self.scan_chenye() # 这里即使报错也会被内部捕获，返回空列表
+            cy_res = self.scan_chenye() 
 
             # 生成 HTML
             quote = random.choice(QUOTES)
@@ -216,7 +216,8 @@ class AutoStrategy:
                     <tr style="background: #333; color: white;"><th>名称</th><th>现价</th><th>股息%</th><th>评价</th></tr>
             """
             for item in kk_res:
-                color = "red" if "低估" in item['status'] or "击球" in item['status'] else "green"
+                # 评价颜色：低估用红(喜庆/机会)，略贵用绿/黑
+                color = "red" if "低估" in item['status'] or "击球" in item['status'] else "black"
                 html += f"""
                     <tr style="border-bottom: 1px solid #ddd;">
                         <td style="padding:5px;">{item['name']}</td>
@@ -255,8 +256,9 @@ def send_pushplus(title, content):
         return
     try:
         url = 'http://www.pushplus.plus/send'
+        # template="html" 很重要，否则表格会乱
         data = {"token": PUSHPLUS_TOKEN, "title": title, "content": content, "template": "html"}
-        requests.post(url, json=data, timeout=10) # 增加 timeout
+        requests.post(url, json=data, timeout=10)
         print("✅ PushPlus 请求已发送")
     except Exception as e:
         print(f"❌ 发送失败: {e}")
@@ -266,7 +268,6 @@ if __name__ == "__main__":
     strategy = AutoStrategy()
     content = strategy.run()
     
-    # 只要生成了内容（即使是报错信息），也尝试发送
     if content:
         send_pushplus(f"复盘 {datetime.now().strftime('%m-%d')}", content)
     
