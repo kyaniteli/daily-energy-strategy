@@ -1,0 +1,31 @@
+name: 十五五金刚配置日报
+
+on:
+  schedule:
+    # UTC时间 07:30 = 北京时间 15:30 (收盘后)
+    - cron: '30 7 * * 1-5'
+  workflow_dispatch: # 允许手动点击运行
+
+jobs:
+  run_analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 拉取代码
+      uses: actions/checkout@v3
+
+    - name: 🐍 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: 📦 安装依赖
+      run: |
+        python -m pip install --upgrade pip
+        pip install akshare pandas requests
+
+    - name: 🚀 运行策略分析
+      env:
+        # 这里引用你在 GitHub Secrets 里设置的 Token
+        PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+      run: python main.py
