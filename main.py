@@ -203,8 +203,8 @@ class FusionStrategy:
         html = f"""
         <div style="font-family:'Helvetica Neue',sans-serif; max-width:600px; margin:0 auto; color:#333;">
             <div style="background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); color:white; padding:15px; border-radius:10px 10px 0 0;">
-                <div style="font-size:18px; font-weight:bold;">🏗️ 2026 工程化建仓日报</div>
-                <div style="font-size:12px; opacity:0.8; margin-top:5px;">{date_str} {week_day} | 执行规则，外包波动</div>
+                <div style="font-size:18px; font-weight:bold;">🏗️ Mango投资日报</div>
+                <div style="font-size:12px; opacity:0.8; margin-top:5px;">{date_str} {week_day} | 执行规则，做正确的事</div>
             </div>
             <div style="background:#fff; padding:15px; border:1px solid #eee; border-top:none;">
                 <div style="background:#f8f9fa; padding:10px; border-radius:5px; font-size:13px; color:#555; margin-bottom:15px; border-left:4px solid #2c3e50;">
@@ -300,4 +300,4 @@ if __name__ == "__main__":
         kk_res = strategy.analyze_kingkong()
         cy_res = strategy.analyze_chenye()
         report = strategy.generate_report(kk_res, cy_res)
-        strategy.send_pushplus("🏗️ 2026 建仓日报", report)
+        strategy.send_pushplus("🏗️ Mango投资日报", report)
