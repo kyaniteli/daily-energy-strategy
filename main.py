@@ -34,9 +34,9 @@ CHENYE_CFG = {
     "POSITION_THRESHOLD": 0.15,  
     "MA_WINDOW": 250,            
     "MA_DISTANCE_MAX": 0.20,     
-    "INCLUDE_ST": True,          
+    "INCLUDE_ST": False,         # <--- [修改] 设为 False，表示剔除 ST 股
     "BOOST_688": True,           
-    "SCAN_LIMIT": 30             # [降级] 调低扫描数量，防止 GitHub Action 超时导致发不出消息
+    "SCAN_LIMIT": 30             # 限制扫描数量防止超时
 }
 
 QUOTES = [
@@ -55,7 +55,7 @@ class FusionStrategy:
     def get_market_data(self):
         try:
             print("📡 [1/3] 拉取全市场实时行情...")
-            # 增加重试机制，防止akshare偶尔连接失败
+            # 增加重试机制
             for _ in range(3):
                 try:
                     df = ak.stock_zh_a_spot_em()
@@ -128,7 +128,7 @@ class FusionStrategy:
 
     # === 晨爷逻辑 ===
     def analyze_chenye(self):
-        print("🏴‍☠️ [3/3] 扫描晨爷潜伏标的...")
+        print("🏴‍☠️ [3/3] 扫描晨爷潜伏标的 (已配置: 剔除ST)...")
         results = []
         if self.df_all is None: return []
 
@@ -142,21 +142,22 @@ class FusionStrategy:
             
             def _is_bad_name(name):
                 if not isinstance(name, str): return True
+                # 剔除退市、新股
                 if any(k in name for k in ["退", "N", "C"]): return True
+                # 剔除 ST (当 INCLUDE_ST 为 False 时，只要含 ST 就返回 True)
                 if not CHENYE_CFG['INCLUDE_ST'] and ("ST" in name): return True
                 return False
                 
             df = df[~df['name'].apply(_is_bad_name)]
             candidates = df.sort_values(by='market_cap').head(CHENYE_CFG['SCAN_LIMIT'])
             
-            print(f"   - 初筛入围: {len(candidates)} 只")
+            print(f"   - 初筛入围: {len(candidates)} 只 (非ST)")
 
             count = 0
             for _, row in candidates.iterrows():
                 count += 1
                 if count % 10 == 0: print(f"   - 扫描进度: {count}/{len(candidates)}")
                 
-                # 容错处理：如果单个股票分析失败，跳过，不要崩溃整个程序
                 try:
                     tech_data = self._analyze_single_stock_depth(row['symbol'], row['price'])
                     if tech_data:
@@ -166,20 +167,19 @@ class FusionStrategy:
                             "status_tag": tech_data['status']
                         })
                 except Exception as e:
-                    continue # 跳过报错的个股
+                    continue 
             
             return sorted(results, key=lambda x: x['score'], reverse=True)[:10]
         
         except Exception as e:
             print(f"⚠️ 晨爷策略整体运行出错: {e}")
-            return [] # 返回空列表，保证后续流程继续
+            return []
 
     def _analyze_single_stock_depth(self, code, current_price):
         try:
             start_date = (self.today - timedelta(days=365 * 4)).strftime("%Y%m%d")
             end_date = self.today.strftime("%Y%m%d")
             
-            # AkShare 接口不稳定时重试一次
             for _ in range(2):
                 try:
                     df_hist = ak.stock_zh_a_hist(symbol=code, start_date=start_date, end_date=end_date, adjust="qfq")
@@ -194,13 +194,10 @@ class FusionStrategy:
             df_hist["日期"] = pd.to_datetime(df_hist["日期"])
             df_hist = df_hist.set_index("日期").sort_index()
             
-            # 月线重采样 (兼容性写法)
             try:
-                # 尝试新版 pandas 写法
                 resampler = df_hist.resample("ME") 
                 df_month = pd.DataFrame({"最高": resampler["最高"].max(), "最低": resampler["最低"].min()}).dropna()
             except:
-                # 回退旧版
                 resampler = df_hist.resample("M")
                 df_month = pd.DataFrame({"最高": resampler["最高"].max(), "最低": resampler["最低"].min()}).dropna()
 
@@ -251,7 +248,6 @@ class FusionStrategy:
             return False
 
     def generate_report(self, kk_data, cy_data):
-        # 如果数据为空，生成一个简易报告，防止报错
         if not kk_data and not cy_data:
             return "<h3>⚠️ 今日数据拉取失败</h3><p>请检查 GitHub Action 日志。</p>"
 
@@ -300,18 +296,17 @@ class FusionStrategy:
         if cy_data:
             cy_list_html = ""
             for x in cy_data[:5]: 
-                st_mark = "⚠️" if "ST" in x['name'] else ""
                 kc_mark = "🚀" if x['symbol'].startswith("688") else ""
                 cy_list_html += f"""
                 <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px dotted #eee;">
-                    <span>{st_mark}{kc_mark}<b>{x['name']}</b> <span style="font-size:10px;color:#999">({x['symbol']})</span></span>
+                    <span>{kc_mark}<b>{x['name']}</b> <span style="font-size:10px;color:#999">({x['symbol']})</span></span>
                     <span style="color:#2980b9;">位置:{x['pos']}% <span style="font-size:10px;color:#ccc">| {x['status_tag']}</span></span>
                 </div>
                 """
             
             html += f"""
             <div style="margin-top:20px; font-size:12px; color:#555; border-top:1px dashed #eee; padding-top:10px;">
-                <b style="color:#2c3e50">🏴‍☠️ 晨爷潜伏池 (Top 5):</b>
+                <b style="color:#2c3e50">🏴‍☠️ 晨爷潜伏池 (Top 5 / 剔除ST):</b>
                 <div style="margin-top:5px; background:#f4f6f7; padding:10px; border-radius:5px;">
                     {cy_list_html}
                 </div>
@@ -323,7 +318,7 @@ class FusionStrategy:
             
         html += """
             <div style="text-align:center; margin-top:20px; font-size:10px; color:#ccc;">
-                System 2026 v3.1 Stable
+                System 2026 v3.2 No-ST
             </div>
             </div>
         </div>
@@ -337,7 +332,6 @@ class FusionStrategy:
 
         print(f"📧 准备发送推送，Token长度: {len(PUSHPLUS_TOKEN)}，内容长度: {len(content)}")
         
-        # 支持多Token群发
         tokens = PUSHPLUS_TOKEN.replace("，", ",").split(",")
         url = 'http://www.pushplus.plus/send'
         
@@ -349,7 +343,6 @@ class FusionStrategy:
                 "token": t, "title": title, "content": content, "template": "html"  
             }
             try:
-                # 增加超时时间到15秒，并打印响应状态
                 response = requests.post(url, json=data, timeout=15)
                 print(f"📨 推送响应: {response.status_code} - {response.text}")
             except Exception as e:
@@ -357,26 +350,20 @@ class FusionStrategy:
 
 if __name__ == "__main__":
     strategy = FusionStrategy()
-    
-    # 增加容错：即使晨爷策略报错，也不影响底仓日报发送
     kk_res = []
     cy_res = []
 
     if strategy.get_market_data():
-        # 1. 执行底仓逻辑 (最重要，优先执行)
         try:
             kk_res = strategy.analyze_kingkong()
         except Exception as e:
             print(f"❌ KingKong 策略出错: {e}")
 
-        # 2. 执行晨爷逻辑 (放在 try 块中，防止耗时过长或报错导致全挂)
         try:
             cy_res = strategy.analyze_chenye()
         except Exception as e:
             print(f"❌ 晨爷策略出错 (已跳过): {e}")
 
-        # 3. 生成报告并发送
-        # 只要有任意数据就发送
         if kk_res or cy_res:
             report = strategy.generate_report(kk_res, cy_res)
             strategy.send_pushplus("🏗️ Mango投资日报", report)
