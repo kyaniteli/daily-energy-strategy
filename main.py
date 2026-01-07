@@ -73,16 +73,17 @@ PORTFOLIO_CFG = {
         "tip": "经济晴雨表，拿住吃分红，不轻易加仓" 
     }
 }
-# ========================= 2. 晨爷配置 (升级版) =========================
+
+# ========================= 2. 晨爷配置 (稳定性优化版) =========================
 CHENYE_CFG = {
-    "MAX_PRICE": 15.0,           
-    "MAX_CAP_BILLION": 50,       
+    "MAX_PRICE": 20.0,           # [微调] 放宽价格限制，增加候选池
+    "MAX_CAP_BILLION": 30,       # 聚焦300亿以下
     "POSITION_THRESHOLD": 0.15,  
     "MA_WINDOW": 250,            
     "MA_DISTANCE_MAX": 0.20,     
-    "INCLUDE_ST": False,         # <--- [修改] 设为 False，表示剔除 ST 股
+    "INCLUDE_ST": False,         # 剔除 ST
     "BOOST_688": True,           
-    "SCAN_LIMIT": 30             # 限制扫描数量防止超时
+    "SCAN_LIMIT": 50             # [修改] 增加扫描上限，防止因数据缺失导致结果为空
 }
 
 QUOTES = [
@@ -127,7 +128,7 @@ class FusionStrategy:
             print(f"❌ 数据获取严重错误: {e}")
             return False
 
-    # === King Kong 逻辑 ===
+    # === King Kong 逻辑 (保持不变) ===
     def analyze_kingkong(self):
         print("🛡️ [2/3] 执行2026建仓逻辑...")
         results = []
@@ -163,6 +164,19 @@ class FusionStrategy:
                 else:
                     status_text, status_color = "⏸️ 等待", "#95a5a6"
                 action_tip = f"目标股息 > {target_yield}%"
+            elif cfg['type'] == 'sniper':
+                target = cfg['target_price']
+                if price <= target:
+                    status_text, status_color, bg_color = "🎯 狙击", "#e74c3c", "#fdedec"
+                elif price <= target * 1.05:
+                    status_text, status_color = "👀 盯盘", "#e67e22"
+                action_tip = f"目标 < {target}"
+            elif cfg['type'] == 'percent_drop':
+                # 简单模拟回撤逻辑，实际需要历史最高价，这里仅做占位
+                action_tip = f"回撤目标 {cfg['target_drop']*100}%"
+            elif cfg['type'] == 'hold':
+                status_text, status_color = "☕ 持仓", "#3498db"
+                action_tip = "收息躺平"
 
             results.append({
                 "name": cfg['name'], "role": cfg['role'], "price": price,
@@ -172,14 +186,15 @@ class FusionStrategy:
             })
         return results
 
-    # === 晨爷逻辑 ===
+    # === 晨爷逻辑 (已增强稳定性) ===
     def analyze_chenye(self):
-        print("🏴‍☠️ [3/3] 扫描晨爷潜伏标的 (已配置: 剔除ST)...")
+        print("🏴‍☠️ [3/3] 扫描晨爷潜伏标的 (防封禁慢速扫描)...")
         results = []
         if self.df_all is None: return []
 
         try:
             df = self.df_all.copy()
+            # 基础筛选
             df = df[
                 (df['market_cap'] < CHENYE_CFG['MAX_CAP_BILLION'] * 100000000) & 
                 (df['price'] < CHENYE_CFG['MAX_PRICE']) & 
@@ -188,21 +203,25 @@ class FusionStrategy:
             
             def _is_bad_name(name):
                 if not isinstance(name, str): return True
-                # 剔除退市、新股
+                # 剔除退市、新股、ST
                 if any(k in name for k in ["退", "N", "C"]): return True
-                # 剔除 ST (当 INCLUDE_ST 为 False 时，只要含 ST 就返回 True)
                 if not CHENYE_CFG['INCLUDE_ST'] and ("ST" in name): return True
                 return False
                 
             df = df[~df['name'].apply(_is_bad_name)]
+            # 扩大候选池，防止因数据缺失导致结果为空
             candidates = df.sort_values(by='market_cap').head(CHENYE_CFG['SCAN_LIMIT'])
             
-            print(f"   - 初筛入围: {len(candidates)} 只 (非ST)")
+            print(f"   - 初筛入围: {len(candidates)} 只 (正在逐个分析历史数据)...")
 
             count = 0
             for _, row in candidates.iterrows():
                 count += 1
-                if count % 10 == 0: print(f"   - 扫描进度: {count}/{len(candidates)}")
+                # 打印进度 (可选)
+                # print(f"Processing {count}/{len(candidates)}: {row['name']}")
+                
+                # [关键] 随机延迟，防止接口请求过快返回空数据
+                time.sleep(random.uniform(0.2, 0.6))
                 
                 try:
                     tech_data = self._analyze_single_stock_depth(row['symbol'], row['price'])
@@ -215,6 +234,7 @@ class FusionStrategy:
                 except Exception as e:
                     continue 
             
+            print(f"   - 扫描完成，符合条件: {len(results)} 只")
             return sorted(results, key=lambda x: x['score'], reverse=True)[:10]
         
         except Exception as e:
@@ -226,24 +246,30 @@ class FusionStrategy:
             start_date = (self.today - timedelta(days=365 * 4)).strftime("%Y%m%d")
             end_date = self.today.strftime("%Y%m%d")
             
-            for _ in range(2):
+            # [修改] 增加 K 线数据获取的重试逻辑
+            df_hist = None
+            for _ in range(3):
                 try:
                     df_hist = ak.stock_zh_a_hist(symbol=code, start_date=start_date, end_date=end_date, adjust="qfq")
-                    if df_hist is not None and not df_hist.empty: break
+                    if df_hist is not None and not df_hist.empty:
+                        break
+                    time.sleep(1) # 失败等待1秒
                 except:
                     time.sleep(1)
-            else:
+            
+            if df_hist is None or len(df_hist) < CHENYE_CFG['MA_WINDOW']: 
                 return None
-
-            if len(df_hist) < CHENYE_CFG['MA_WINDOW']: return None
 
             df_hist["日期"] = pd.to_datetime(df_hist["日期"])
             df_hist = df_hist.set_index("日期").sort_index()
             
+            # 兼容不同 Pandas 版本的 Resample
             try:
+                # 尝试新版 pandas 写法
                 resampler = df_hist.resample("ME") 
                 df_month = pd.DataFrame({"最高": resampler["最高"].max(), "最低": resampler["最低"].min()}).dropna()
             except:
+                # 回退旧版写法
                 resampler = df_hist.resample("M")
                 df_month = pd.DataFrame({"最高": resampler["最高"].max(), "最低": resampler["最低"].min()}).dropna()
 
@@ -258,6 +284,8 @@ class FusionStrategy:
             if pos_rank > CHENYE_CFG['POSITION_THRESHOLD']: return None
 
             ma250 = df_hist["收盘"].tail(CHENYE_CFG['MA_WINDOW']).mean()
+            if ma250 == 0: return None
+            
             dist_to_ma250 = (current_price - ma250) / ma250
             if dist_to_ma250 > CHENYE_CFG['MA_DISTANCE_MAX']: return None
 
@@ -289,6 +317,7 @@ class FusionStrategy:
             tail = macd_hist.dropna().iloc[-3:]
             if len(tail) < 3: return False
             v1, v2, v3 = tail.iloc[-3], tail.iloc[-2], tail.iloc[-1]
+            # 逻辑：连续水下且缩短，或者刚翻红
             return ((v1 < 0 and v2 < 0 and v3 < 0) and (abs(v3) < abs(v2))) or ((v2 < 0) and (v3 > 0))
         except:
             return False
@@ -360,11 +389,11 @@ class FusionStrategy:
             </div>
             """
         else:
-             html += """<div style="margin-top:20px; font-size:12px; color:#999; text-align:center;">(今日无晨爷策略入选或扫描未完成)</div>"""
+             html += """<div style="margin-top:20px; font-size:12px; color:#999; text-align:center;">(今日无晨爷策略入选或数据未更新)</div>"""
             
         html += """
             <div style="text-align:center; margin-top:20px; font-size:10px; color:#ccc;">
-                System 2026 v3.2 No-ST
+                System 2026 v3.3 Stability-Plus
             </div>
             </div>
         </div>
