@@ -14,9 +14,8 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 # ========================= 环境变量 =========================
 PUSHPLUS_TOKEN = os.getenv("PUSHPLUS_TOKEN", "")
 
-# ========================= 🧠 每日投资冥想语录库 (扩充版) =========================
+# ========================= 🧠 每日投资冥想语录库 =========================
 INVESTMENT_WISDOM = [
-    # --- 阿段：体系与执行 ---
     {"author": "阿段", "text": "“你不是在赌对错，而是在用规则，把人性的不稳定外包给系统。”"},
     {"author": "阿段", "text": "“只要水在流、电在卖，股价的波动就是噪音。收息股的本质是‘永续债’。”"},
     {"author": "阿段", "text": "“不要羡慕赌场的赢家。只做两件事：把底仓建稳，把阿尔法仓买在明显错价。”"},
@@ -26,8 +25,6 @@ INVESTMENT_WISDOM = [
     {"author": "阿段", "text": "“下跌不是风险，永久性亏损才是。对于优质资产，下跌是其增加吸引力的唯一方式。”"},
     {"author": "阿段", "text": "“平庸的投资者在波动中焦虑，优秀的投资者在波动中套利。”"},
     {"author": "阿段", "text": "“建仓就像种树，你不能今天种下去，明天就挖出来看看有没有长根。”"},
-    
-    # --- 巴菲特：耐心与常识 ---
     {"author": "Warren Buffett", "text": "“股市是财富从急躁者手中流向耐心者手中的工具。”"},
     {"author": "Warren Buffett", "text": "“机会来得很慢，就像天上掉金子。当金子掉下来时，我们要用桶接，而不是用顶针。”"},
     {"author": "Warren Buffett", "text": "“如果你不愿意持有一只股票十年，请不要持有它十分钟。”"},
@@ -35,8 +32,6 @@ INVESTMENT_WISDOM = [
     {"author": "Warren Buffett", "text": "“必须等到击球区再挥棒。投资界没有‘好球不挥棒三振出局’的规则。”"},
     {"author": "Warren Buffett", "text": "“别人贪婪我恐惧，别人恐惧我贪婪。但这通常需要你有一颗反人性的心脏。”"},
     {"author": "Warren Buffett", "text": "“价格是你付出的，价值是你得到的。”"},
-    
-    # --- 芒格：反向思考与智慧 ---
     {"author": "Charlie Munger", "text": "“赚大钱靠的不是频繁买卖，而是等待（Sitting）。”"},
     {"author": "Charlie Munger", "text": "“反过来想，总是反过来想。如果知道我会死在哪里，我就永远不去那个地方。”"},
     {"author": "Charlie Munger", "text": "“许多高智商的人在投资中是糟糕的，因为他们的脾气不仅急躁，而且过度自信。”"},
@@ -44,8 +39,6 @@ INVESTMENT_WISDOM = [
     {"author": "Charlie Munger", "text": "“钓鱼的第一条规则是：去有鱼的地方钓鱼。第二条规则是：别忘了第一条规则。”"},
     {"author": "Charlie Munger", "text": "“手里拿着锤子的人，看什么都像钉子。要有多种思维模型。”"},
     {"author": "Charlie Munger", "text": "“承认无知是智慧的开端。不要假装知道你不知道的事情。”"},
-    
-    # --- 霍华德·马克思：周期与概率 ---
     {"author": "Howard Marks", "text": "“我们无法预测未来，但我们可以做好准备。”"},
     {"author": "Howard Marks", "text": "“树不会长到天上去，大多数事物都有周期。”"},
     {"author": "Peter Lynch", "text": "“在股市中，最重要的大脑器官不是大脑，而是胃。你得受得了波动。”"}
@@ -92,33 +85,52 @@ STRATEGY_CFG = {
             {"id": "S3", "price": 33.00, "desc": "极端/系统性", "amt": "0.5w"}
         ]
     },
+    "601985": {
+        "name": "中国核电",
+        "role": "☢️ 现金奶牛",
+        "section": "core",
+        "orders": [
+            # 逻辑：现价~10元。第一击回调5-8%约9.5；第二击股息>3.5%约8.6
+            {"id": "H1", "price": 9.50, "desc": "底仓/回调5%",  "amt": "0.5w"},
+            {"id": "H2", "price": 8.60, "desc": "加仓/股息3.5%", "amt": "0.5w"}
+        ]
+    },
 
     # === 第二部分：狙击与埋伏区 (弹性) ===
+    "000400": {
+        "name": "许继电气",
+        "role": "⚔️ 强周期进攻",
+        "section": "sniper",
+        "orders": [
+            {"id": "X1", "price": 30.50, "desc": "底仓/60日线", "amt": "0.5w"},
+            {"id": "X2", "price": 28.00, "desc": "加仓/PE18倍", "amt": "0.5w"}
+        ]
+    },
+    "603556": {
+        "name": "海兴电力",
+        "role": "🌊 高波动奇兵",
+        "section": "sniper",
+        "orders": [
+            {"id": "SEA1", "price": 37.50, "desc": "底仓/MA关键", "amt": "0.5w"},
+            {"id": "SEA2", "price": 33.00, "desc": "加仓/错杀区", "amt": "0.5w"}
+        ]
+    },
     "600406": {
         "name": "国电南瑞",
-        "role": "⚡ 特种部队",
+        "role": "⚓ 稳健基石",
         "section": "sniper",
         "orders": [
-            {"id": "N1", "price": 20.50, "desc": "激活/估值底",   "amt": "0.5w"},
-            {"id": "N2", "price": 19.20, "desc": "重注/极端恐慌", "amt": "0.5w"}
+            {"id": "N1", "price": 24.50, "desc": "底仓/箱体下沿", "amt": "0.5w"},
+            {"id": "N2", "price": 22.50, "desc": "加仓/历史大底", "amt": "0.5w"}
         ]
     },
-    "300124": {
-        "name": "汇川技术",
-        "role": "🤖 成长猎手",
+    "002028": {
+        "name": "思源电气",
+        "role": "🚀 效率卷王",
         "section": "sniper",
         "orders": [
-            {"id": "H1", "price": 58.50, "desc": "首注/大跌机会", "amt": "0.5w"},
-            {"id": "H2", "price": 52.00, "desc": "倍投/绝对机会", "amt": "0.5w"}
-        ]
-    },
-    "002371": {
-        "name": "北方华创",
-        "role": "🔬 硬核科技",
-        "section": "sniper",
-        "orders": [
-            {"id": "B1", "price": 368.00, "desc": "观察/安全边际", "amt": "0.5w"},
-            {"id": "B2", "price": 330.00, "desc": "重注/历史大底", "amt": "0.5w"}
+            {"id": "SY1", "price": 46.00, "desc": "底仓/错杀上车", "amt": "0.5w"},
+            {"id": "SY2", "price": 42.00, "desc": "加仓/倒车接人", "amt": "0.5w"}
         ]
     }
 }
@@ -333,7 +345,7 @@ class MangoStrategy:
         </div>
         
         <div style="text-align:center; margin-top:20px; font-size:10px; color:#ccc;">
-            System 2026 Q1 Final | Version 4.0 Wisdom
+            System 2026 Q1 Final | Version 4.1 Electric
         </div>
         </div>
         </div>
